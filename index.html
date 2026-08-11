@@ -117,11 +117,13 @@ var HDR={apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"applicatio
 var DB={anggota:[],jenis:[],kegiatan:[],penugasan:[],config:{}};
 var TAB="catat", PIN=null, FORM=null, MODAL=null;
 var PERIODE={tahun:new Date().getFullYear(),jenis:0};
+var CATAT_JENIS=0;
 
 var TIER={dalam_kota:"Dalam kota",luar_pp:"Luar kota PP",luar_inap:"Luar kota nginep"};
 var TIERP={dalam_kota:"Dlm kota",luar_pp:"Luar PP",luar_inap:"Luar nginep"};
 var BEBAN={1:"Ringan",2:"Sedang",3:"Berat"};
 var BLN3=["","Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+var BLN=["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 
 /* ---------- util ---------- */
 function $(s){return document.querySelector(s);}
@@ -243,21 +245,37 @@ function viewCatat(){
   var h="";
   if(PIN) h+='<button class="besar" data-aksi="baru">+ Catat kegiatan</button>';
   else h+='<div class="meta" style="padding:4px 0">Mode lihat saja. Masuk lewat tab Admin untuk mencatat.</div>';
-  var list=DB.kegiatan.slice().sort(function(a,b){
-    if(!a.tanggal&&b.tanggal) return -1;
-    if(a.tanggal&&!b.tanggal) return 1;
-    if(a.tanggal&&b.tanggal) return a.tanggal<b.tanggal?1:-1;
+  h+='<div class="baris" style="margin:8px 0">'+
+    '<select data-aksi="cjenis"><option value="0">Semua kegiatan</option>'+
+    DB.jenis.map(function(j){return '<option value="'+j.id+'"'+(CATAT_JENIS===j.id?" selected":"")+
+      ">"+esc(j.nama)+"</option>";}).join("")+"</select></div>";
+  var semua=DB.kegiatan.filter(function(k){return !CATAT_JENIS||k.jenis_id===CATAT_JENIS;});
+  if(!semua.length) return h+'<div class="kosong">'+
+    (DB.kegiatan.length?"Tidak ada catatan untuk filter ini.":"Belum ada catatan.<br>Mulai dari tombol di atas.")+"</div>";
+  var tanpa=semua.filter(function(k){return !k.tanggal;});
+  var ada=semua.filter(function(k){return k.tanggal;}).sort(function(a,b){
+    if(a.tanggal!==b.tanggal) return a.tanggal<b.tanggal?1:-1;
     return a.dibuat<b.dibuat?1:-1;});
-  if(!list.length) return h+'<div class="kosong">Belum ada catatan.<br>Mulai dari tombol di atas.</div>';
-  h+='<div style="margin-top:8px">'+list.map(function(k){
+  function kartu(k){
     var o=orangDi(k.id);
+    var nama=o.length?o.map(function(a){return esc(a.nama)+(k.ketua_id===a.id?" *":"");}).join(", ")
+      :"belum ada nama";
     return '<div class="in kart" data-aksi="detail" data-v="'+k.id+'">'+
       '<div class="jud">'+esc(namaKeg(k))+"</div>"+
       '<div class="meta">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+
         (k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
-      '<div>'+(o.length?o.map(function(a){
-        return '<span class="chip">'+esc(a.nama)+(k.ketua_id===a.id?" \u2605":"")+"</span>";}).join("")
-        :'<span class="chip w">belum ada nama</span>')+"</div></div>";}).join("")+"</div>";
+      '<div class="meta">'+nama+"</div></div>";}
+  h+='<div style="margin-top:8px">';
+  if(tanpa.length)
+    h+="<details><summary>Belum bertanggal ("+tanpa.length+")</summary>"+
+      tanpa.map(kartu).join("")+"</details>";
+  var bulanKini="";
+  ada.forEach(function(k){
+    var p=k.tanggal.split("-"), key=p[0]+"-"+p[1];
+    if(key!==bulanKini){bulanKini=key;
+      h+='<div class="meta" style="margin:10px 0 2px;font-weight:bold">'+BLN[parseInt(p[1],10)]+" "+p[0]+"</div>";}
+    h+=kartu(k);});
+  h+="</div>";
   if(PIN) h+='<div class="aksi"><button data-aksi="wa-rekap">Salin rekap ke WA</button>'+
              '<button data-aksi="csv">Export CSV</button></div>';
   return h;}
@@ -294,10 +312,13 @@ function viewOrang(){
             '<span class="meta">'+bulat(x.jalan)+"</span></td>"+
           '<td><div class="bar"><i class="b" style="width:'+(x.beban/mB*100).toFixed(0)+'%"></i></div>'+
             '<span class="meta">'+bulat(x.beban)+"</span></td>"+
-          '<td class="n">'+x.n+"</td></tr>";}).join("")+"</table>"+
+          '<td class="n">'+x.n+
+            '<div class="meta">'+x.tier.dalam_kota+" · "+x.tier.luar_pp+" · "+x.tier.luar_inap+
+            "</div></td></tr>";}).join("")+"</table>"+
       '<div class="meta" style="margin-top:6px">'+(PERIODE.jenis?
         "Kolom <b>Kali</b> = berapa kali ikut kegiatan ini.":
-        "Urut dari yang paling jarang jalan.")+" Ketuk nama untuk riwayat.</div>"+
+        "Urut dari yang paling jarang jalan.")+
+        " Angka di bawah Kali: dalam kota · luar PP · nginep. Ketuk nama untuk riwayat.</div>"+
       "</fieldset>";});
   return h||'<div class="kosong">Belum ada anggota.</div>';}
 
@@ -676,6 +697,8 @@ document.addEventListener("change",function(ev){
     PERIODE.tahun=parseInt(el.value,10)||0; render(); return;}
   if(el.getAttribute("data-aksi")==="pjenis"){
     PERIODE.jenis=parseInt(el.value,10)||0; render(); return;}
+  if(el.getAttribute("data-aksi")==="cjenis"){
+    CATAT_JENIS=parseInt(el.value,10)||0; render(); return;}
 });
 
 (function(){
