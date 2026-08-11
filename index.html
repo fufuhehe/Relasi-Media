@@ -116,7 +116,7 @@ var HDR={apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"applicatio
 
 var DB={anggota:[],jenis:[],kegiatan:[],penugasan:[],config:{}};
 var TAB="catat", PIN=null, FORM=null, MODAL=null;
-var PERIODE={tahun:new Date().getFullYear()};
+var PERIODE={tahun:new Date().getFullYear(),jenis:0};
 
 var TIER={dalam_kota:"Dalam kota",luar_pp:"Luar kota PP",luar_inap:"Luar kota nginep"};
 var TIERP={dalam_kota:"Dlm kota",luar_pp:"Luar PP",luar_inap:"Luar nginep"};
@@ -145,6 +145,8 @@ function tglTeks(k){
   if(b[1]===p[1]) return parseInt(p[2],10)+"\u2013"+parseInt(b[2],10)+" "+BLN3[parseInt(p[1],10)]+" "+p[0];
   return a+" \u2013 "+parseInt(b[2],10)+" "+BLN3[parseInt(b[1],10)]+" "+b[0];}
 function tumpang(a1,a2,b1,b2){return !(a2<b1||a1>b2);}
+function labelFilter(){var j=PERIODE.jenis?cari(DB.jenis,PERIODE.jenis):null;
+  return (PERIODE.tahun||"semua waktu")+(j?" \u00b7 "+j.nama:"");}
 function cari(arr,id){for(var i=0;i<arr.length;i++) if(arr[i].id===id) return arr[i];return null;}
 function angg(id){return cari(DB.anggota,id);}
 function namaKeg(k){
@@ -167,7 +169,8 @@ function dalamPeriode(k,b){
   if(!b.dari) return true;
   if(!k.tanggal) return true;           // belum bertanggal: selalu ikut dihitung
   return !(akhir(k)<b.dari || k.tanggal>b.sampai);}
-function rekap(){
+function rekap(fj){
+  var jf=(fj===undefined)?PERIODE.jenis:fj;
   var b=batas(), m={}, kg={};
   DB.kegiatan.forEach(function(k){kg[k.id]=k;});
   DB.anggota.forEach(function(a){
@@ -176,6 +179,7 @@ function rekap(){
   DB.penugasan.forEach(function(p){
     var k=kg[p.kegiatan_id], o=m[p.anggota_id];
     if(!k||!o||!dalamPeriode(k,b)) return;
+    if(jf&&k.jenis_id!==jf) return;
     var ketua=(k.ketua_id===p.anggota_id);
     o.jalan+=skorJalan(k); o.beban+=skorBeban(k,ketua);
     o.hari+=Math.max(1,num(k.jumlah_hari,1)); o.n++; o.tier[k.tier]++;
@@ -262,10 +266,14 @@ function viewOrang(){
   var r=rekap(), h="";
   var thn=[], y=new Date().getFullYear();
   for(var i=y;i>=y-3;i--) thn.push(i);
-  h+='<select data-aksi="ptahun" style="margin-bottom:8px"><option value="0"'+
-    (PERIODE.tahun?"":" selected")+">Semua waktu</option>"+
+  h+='<div class="baris" style="margin-bottom:8px">'+
+    '<select data-aksi="ptahun"><option value="0"'+(PERIODE.tahun?"":" selected")+
+      ">Semua waktu</option>"+
     thn.map(function(t){return '<option value="'+t+'"'+(PERIODE.tahun===t?" selected":"")+">"+t+"</option>";}).join("")+
-    "</select>";
+    "</select>"+
+    '<select data-aksi="pjenis"><option value="0">Semua kegiatan</option>'+
+    DB.jenis.map(function(j){return '<option value="'+j.id+'"'+(PERIODE.jenis===j.id?" selected":"")+
+      ">"+esc(j.nama)+"</option>";}).join("")+"</select></div>";
   ["tim","tu"].forEach(function(kat){
     var rows=r.filter(function(x){return x.kategori===kat&&(x.aktif||x.n>0);});
     if(!rows.length) return;
@@ -278,7 +286,7 @@ function viewOrang(){
     h+='<fieldset class="grp"><legend>'+(kat==="tim"?"Tim inti":"Anak TU")+
       "</legend><table><tr><th>Nama</th><th>Jalan</th><th>Beban</th><th class=n>Kali</th></tr>"+
       rows.map(function(x){
-        var flag=(pakai.length>1&&x.beban>aB&&x.jalan<aJ);
+        var flag=(!PERIODE.jenis&&pakai.length>1&&x.beban>aB&&x.jalan<aJ);
         return '<tr data-aksi="lihat" data-v="'+x.id+'" style="cursor:pointer">'+
           "<td><b>"+esc(x.nama)+"</b>"+
             (flag?'<div class="chip w">jarang jalan, beban tinggi</div>':"")+"</td>"+
@@ -287,7 +295,9 @@ function viewOrang(){
           '<td><div class="bar"><i class="b" style="width:'+(x.beban/mB*100).toFixed(0)+'%"></i></div>'+
             '<span class="meta">'+bulat(x.beban)+"</span></td>"+
           '<td class="n">'+x.n+"</td></tr>";}).join("")+"</table>"+
-      '<div class="meta" style="margin-top:6px">Urut dari yang paling jarang jalan. Ketuk nama untuk riwayat.</div>'+
+      '<div class="meta" style="margin-top:6px">'+(PERIODE.jenis?
+        "Kolom <b>Kali</b> = berapa kali ikut kegiatan ini.":
+        "Urut dari yang paling jarang jalan.")+" Ketuk nama untuk riwayat.</div>"+
       "</fieldset>";});
   return h||'<div class="kosong">Belum ada anggota.</div>';}
 
@@ -365,7 +375,9 @@ function formCatat(){
       return '<button data-aksi="set-beban" data-v="'+n+'" class="'+(f.tingkat_beban===n?"tekan":"")+'">'+
         BEBAN[n]+"</button>";}).join("")+"</div></details>";
 
-  var r={}; rekap().forEach(function(x){r[x.id]=x;});
+  var r={}; rekap(0).forEach(function(x){r[x.id]=x;});
+  var rj=null;
+  if(f.jenis_id){rj={}; rekap(f.jenis_id).forEach(function(x){rj[x.id]=x;});}
   var terpilih=Object.keys(f.orang).filter(function(k){return f.orang[k];})
     .map(function(k){return parseInt(k,10);});
   ["tim","tu"].forEach(function(kat){
@@ -379,7 +391,8 @@ function formCatat(){
         return '<label class="pilih" style="font-weight:normal;margin:0">'+
           '<input type=checkbox data-orang="'+a.id+'"'+(f.orang[a.id]?" checked":"")+">"+
           '<span class="nm"><b>'+esc(a.nama)+"</b>"+
-            '<div class="meta">'+(s?s.n:0)+"\u00d7 jalan \u00b7 skor "+(s?bulat(s.jalan):0)+"</div>"+
+            '<div class="meta">'+(s?s.n:0)+"\u00d7 jalan \u00b7 skor "+(s?bulat(s.jalan):0)+
+              (rj?' \u00b7 <b>'+(rj[a.id]?rj[a.id].n:0)+"\u00d7 kegiatan ini</b>":"")+"</div>"+
             (bt.length?'<span class="chip w">bentrok: '+esc(namaKeg(bt[0]))+"</span>":"")+
           "</span></label>";}).join("")+"</fieldset>";});
 
@@ -451,7 +464,7 @@ function detailOrang(id){
     if(!x.k.tanggal) return -1; if(!y.k.tanggal) return 1;
     return x.k.tanggal<y.k.tanggal?1:-1;});
   var t=r?r.tier:{dalam_kota:0,luar_pp:0,luar_inap:0};
-  var h='<div class="meta">Periode: '+(PERIODE.tahun||"semua waktu")+"</div>"+
+  var h='<div class="meta">Filter: '+esc(labelFilter())+"</div>"+
     "<p><b>"+(r?r.n:0)+" kali jalan</b>, total "+(r?r.hari:0)+" hari<br>"+
     "Skor jalan "+bulat(r?r.jalan:0)+" \u00b7 skor beban "+bulat(r?r.beban:0)+"</p>"+
     '<fieldset class="grp"><legend>Sebaran tujuan</legend>'+
@@ -492,7 +505,7 @@ function teksKegiatan(k){
   if(k.catatan) s+="\n"+k.catatan+"\n";
   return s;}
 function teksRekap(){
-  var r=rekap(), s="*Rekap kegiatan \u2014 "+(PERIODE.tahun||"semua waktu")+"*\n";
+  var r=rekap(), s="*Rekap kegiatan \u2014 "+labelFilter()+"*\n";
   ["tim","tu"].forEach(function(kat){
     var rows=r.filter(function(x){return x.kategori===kat&&(x.aktif||x.n>0);});
     if(!rows.length) return;
@@ -661,6 +674,8 @@ document.addEventListener("change",function(ev){
     gambarLapis(); return;}
   if(el.getAttribute("data-aksi")==="ptahun"){
     PERIODE.tahun=parseInt(el.value,10)||0; render(); return;}
+  if(el.getAttribute("data-aksi")==="pjenis"){
+    PERIODE.jenis=parseInt(el.value,10)||0; render(); return;}
 });
 
 (function(){
