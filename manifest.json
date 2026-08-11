@@ -1,6 +1,6 @@
 {
-  "name": "Tracker Kegiatan Tim",
-  "short_name": "Kegiatan",
+  "name": "Catatan Kegiatan Tim",
+  "short_name": "Catatan",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
