@@ -77,6 +77,7 @@ body{background:var(--bg);color:var(--text);
 .chev{flex:none;width:8px;height:8px;border-right:2px solid var(--textdim);
   border-bottom:2px solid var(--textdim);transform:rotate(-45deg);opacity:.5}
 .note{font-size:12px;color:var(--textdim);margin:8px 6px 0;line-height:1.4}
+.desc{font-size:16px;font-weight:500;color:var(--text);margin:0 0 10px;line-height:1.4}
 .filters{display:flex;gap:10px;margin:6px 0 2px}
 .filters>*{flex:1}
 
@@ -445,36 +446,35 @@ function viewOrang(){
   return h||'<div class="kosong">Belum ada anggota.</div>';}
 
 function viewAdmin(){
-  if(!PIN) return '<fieldset class="grp"><legend>Masuk admin</legend>'+
-    "<label>PIN</label><input type=password inputmode=numeric id=inpPin>"+
-    '<div class="aksi"><button data-aksi="login">Masuk</button></div>'+
-    '<div class="meta" style="margin-top:8px">PIN awal 1234 \u2014 ganti setelah masuk.</div></fieldset>';
-  var h='<div class="aksi" style="margin:0 0 4px"><button data-aksi="logout">Keluar admin</button></div>';
-  h+='<fieldset class="grp"><legend>Daftar kegiatan</legend>'+
-    '<div class="meta">Bobot nempel di sini, jadi pas nyatat tinggal pilih.</div>'+
-    '<div class="aksi" style="margin:6px 0"><button data-aksi="jenis-baru">+ Tambah kegiatan</button></div>'+
+  if(!PIN) return '<div class="sect">Masuk admin</div>'+
+    '<div class="list"><div class="ffield"><label>PIN</label><input type=password inputmode=numeric id=inpPin></div></div>'+
+    '<div class="aksi" style="margin-top:14px"><button data-aksi="login">Masuk</button></div>'+
+    '<div class="note">PIN awal 1234 \u2014 ganti setelah masuk.</div>';
+  var h='<div style="margin:6px 0 2px"><button data-aksi="logout" style="width:100%">Keluar admin</button></div>';
+  h+='<div class="sect">Daftar kegiatan</div>'+
+    '<div class="note" style="margin:0 6px 7px">Bobot nempel di sini, jadi pas nyatat tinggal pilih.</div>'+
+    '<div class="list">'+
     (DB.jenis.length?DB.jenis.map(function(j){
-      return '<div class="pilih"><span class="nm">'+esc(j.nama)+
-        '<div class="meta">'+TIER[j.tier]+" \u00b7 "+BEBAN[j.tingkat_beban]+
-        (j.aktif?"":" \u00b7 nonaktif")+"</div></span>"+
+      return '<div class="cell"><div class="tx"><div class="tl">'+esc(j.nama)+"</div>"+
+        '<div class="sb">'+TIER[j.tier]+" \u00b7 "+BEBAN[j.tingkat_beban]+(j.aktif?"":" \u00b7 nonaktif")+"</div></div>"+
         '<button class="kecil" data-aksi="jenis-edit" data-v="'+j.id+'">Ubah</button></div>';}).join("")
-      :'<div class="kosong">Kosong.</div>')+"</fieldset>";
-  h+='<fieldset class="grp"><legend>Orang</legend>'+
-    '<div class="aksi" style="margin:0 0 6px"><button data-aksi="ang-baru">+ Tambah orang</button></div>'+
+      :'<div class="cell static"><div class="tx"><div class="sb">Kosong.</div></div></div>')+"</div>"+
+    '<div class="aksi" style="margin-top:10px"><button data-aksi="jenis-baru">+ Tambah kegiatan</button></div>';
+  h+='<div class="sect">Orang</div><div class="list">'+
     DB.anggota.map(function(a){
-      return '<div class="pilih"><span class="nm">'+esc(a.nama)+
-        ' <span class="meta">'+(a.kategori==="tu"?"TU":"tim")+(a.aktif?"":" \u00b7 nonaktif")+"</span></span>"+
+      return '<div class="cell"><div class="tx"><div class="tl">'+esc(a.nama)+"</div>"+
+        '<div class="sb">'+(a.kategori==="tu"?"TU":"Tim inti")+(a.aktif?"":" \u00b7 nonaktif")+"</div></div>"+
         '<button class="kecil" data-aksi="ang-edit" data-v="'+a.id+'">Ubah</button></div>';}).join("")+
-    "</fieldset>";
+    "</div>"+
+    '<div class="aksi" style="margin-top:10px"><button data-aksi="ang-baru">+ Tambah orang</button></div>';
   var c=[["nama_tim","Judul app","text"],["poin_dalam_kota","Poin dalam kota / hari","number"],
     ["poin_luar_pp","Poin luar kota PP / hari","number"],
     ["poin_luar_inap","Poin dasar luar kota nginep","number"],
     ["poin_per_malam","Tambahan per malam","number"],["faktor_ketua","Faktor beban ketua","number"]];
-  h+="<details><summary>Pengaturan skor &amp; PIN</summary>"+
-    c.map(function(x){return "<label>"+x[1]+'</label><input data-cfg="'+x[0]+'" type="'+x[2]+
-      '" step="0.1" value="'+esc(DB.config[x[0]]||"")+'">';}).join("")+
+  h+='<div class="sect">Pengaturan</div><div class="list"><details><summary class="frow"><span class="fl">Skor &amp; PIN</span></summary><div style="padding:2px 16px 14px">'+
+    c.map(function(x){return "<label>"+x[1]+'</label><input data-cfg="'+x[0]+'" type="'+x[2]+'" step="0.1" value="'+esc(DB.config[x[0]]||"")+'">';}).join("")+
     '<label>PIN baru (kosongkan kalau tak diubah)</label><input data-cfg="pin" type=text inputmode=numeric value="">'+
-    '<div class="aksi"><button data-aksi="simpan-cfg">Simpan pengaturan</button></div></details>';
+    '<div class="aksi"><button data-aksi="simpan-cfg">Simpan pengaturan</button></div></div></details></div>';
   return h;}
 
 /* ---------- modal ---------- */
@@ -579,7 +579,14 @@ function bacaForm(){
 function detailKegiatan(id){
   var k=cari(DB.kegiatan,id); if(!k) return;
   var o=orangDi(id), j=k.jenis_id?cari(DB.jenis,k.jenis_id):null;
-  var h='<div class="sub" style="margin:0 0 14px">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+(k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
+  var ket=o.filter(function(a){return k.ketua_id===a.id;});
+  var tim=o.filter(function(a){return k.ketua_id!==a.id&&a.kategori!=="tu";});
+  var tu=o.filter(function(a){return k.ketua_id!==a.id&&a.kategori==="tu";});
+  function grp(lbl,arr){ if(!arr.length) return "";
+    return '<div class="cell static"><div class="tx"><div class="cap" style="margin:0 0 3px">'+lbl+'</div>'+
+      '<div class="sb nm">'+arr.map(function(a){return esc(a.nama);}).join(", ")+"</div></div></div>";}
+  var h=(k.judul?'<div class="desc">'+esc(k.judul)+"</div>":"")+
+    '<div class="sub" style="margin:0 0 14px">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+(k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
     '<div class="list">'+
       '<div class="cell static"><div class="tx"><div class="tl">Tier</div></div><span class="val">'+TIER[k.tier]+"</span></div>"+
       '<div class="cell static"><div class="tx"><div class="tl">Beban</div></div><span class="val">'+BEBAN[k.tingkat_beban]+"</span></div>"+
@@ -587,9 +594,7 @@ function detailKegiatan(id){
     "</div>"+
     (k.catatan?'<div class="sect">Catatan</div><div class="list"><div class="cell static"><div class="tx"><div class="sb nm">'+esc(k.catatan).replace(/\n/g,"<br>")+"</div></div></div></div>":"")+
     '<div class="sect">Yang jalan ('+o.length+')</div><div class="list">'+
-    (o.length?o.map(function(a){var kt=(k.ketua_id===a.id);
-      return '<div class="cell static"><div class="tx"><div class="tl">'+esc(a.nama)+(kt?' <span class="chip">ketua</span>':"")+
-        '</div><div class="sb">'+(a.kategori==="tu"?"TU":"anggota")+" \u00b7 beban "+bulat(skorBeban(k,kt))+"</div></div></div>";}).join("")
+    (o.length?(grp("Ketua",ket)+grp("Anggota",tim)+grp("TU",tu))
       :'<div class="cell static"><div class="tx"><div class="sb">Belum diisi.</div></div></div>')+"</div>"+
     '<div class="aksi" style="margin-top:18px">'+
     (PIN?'<button data-aksi="edit-keg" data-v="'+id+'">Ubah</button>':"")+
