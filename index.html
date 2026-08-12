@@ -432,9 +432,9 @@ function viewOrang(){
     var mJ=1,mB=1; rows.forEach(function(x){mJ=Math.max(mJ,x.jalan);mB=Math.max(mB,x.beban);});
     h+='<div class="sect">'+(kat==="tim"?"Tim inti":"Anak TU")+'</div><div class="list">'+
       rows.map(function(x){
-        var flag=(!PERIODE.jenis&&pakai.length>1&&x.beban>aB&&x.jalan<aJ);
+        var flag=(!PERIODE.jenis&&pakai.length>1&&x.beban>aB*1.1&&x.jalan<aJ*0.9);   // margin 10%: cuma nangkep yang beneran timpang
         return '<div class="cell prow" data-aksi="lihat" data-v="'+x.id+'">'+
-          '<div class="prow-top"><b>'+esc(x.nama)+"</b>"+(flag?' <span class="chip w">jarang jalan, beban tinggi</span>':"")+
+          '<div class="prow-top"><b>'+esc(x.nama)+"</b>"+(flag?' <span class="chip w">rezeki ngepas, beban tinggi</span>':"")+
             '<span class="kali">'+x.n+'×</span></div>'+
           '<div class="prow-bars">'+
             '<div class="mb"><span class="mbl">Jalan</span><div class="mini"><i class="a" style="width:'+(x.jalan/mJ*100).toFixed(0)+'%"></i></div><span class="mbv">'+bulat(x.jalan)+"</span></div>"+
@@ -443,7 +443,7 @@ function viewOrang(){
           '<div class="meta comp">'+x.tier.dalam_kota+" · "+x.tier.luar_pp+" · "+x.tier.luar_inap+
             ' <span style="opacity:.7">dlm kota · luar PP · nginep</span></div>'+
         "</div>";}).join("")+"</div>"+
-      '<div class="note">'+(PERIODE.jenis?"Kali = berapa kali ikut kegiatan ini.":"Urut dari yang paling jarang jalan.")+
+      '<div class="note">'+(PERIODE.jenis?"Kali = berapa kali ikut kegiatan ini.":"Urut dari skor jalan (rezeki) terkecil.")+
         " Ketuk untuk riwayat.</div>";});
   return h||'<div class="kosong">Belum ada anggota.</div>';}
 
