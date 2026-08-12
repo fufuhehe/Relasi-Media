@@ -136,6 +136,21 @@ label{display:block;margin:15px 0 6px;font-weight:600;font-size:14px;color:var(-
 .pilih input[type=checkbox]{width:25px;height:25px;min-height:25px;flex:none;
   accent-color:var(--accent);box-shadow:none;margin:0;-webkit-appearance:auto;appearance:auto}
 .pilih .nm{flex:1;min-width:0}
+.ffield{padding:9px 16px}
+.ffield+.ffield{border-top:1px solid var(--sep)}
+.ffield>label{display:block;margin:0 0 3px;font-size:12px;font-weight:600;color:var(--textdim);
+  text-transform:uppercase;letter-spacing:.03em}
+.ffield input,.ffield select,.ffield textarea{border:none;background-color:transparent;box-shadow:none;
+  padding:0;min-height:32px;border-radius:0;width:100%;font-size:16px}
+.ffield textarea{min-height:60px;padding:2px 0;resize:vertical}
+.ffield select{padding-right:22px;background-position:right 2px center}
+.frow{display:flex;align-items:center;gap:10px;padding:13px 16px}
+.frow .fl{font-weight:500;font-size:16px}
+.ctlval{margin-left:auto;color:var(--textdim);font-size:15px}
+.cap{font-size:12px;font-weight:600;color:var(--textdim);text-transform:uppercase;letter-spacing:.03em;margin:0 0 6px}
+details>summary.frow{padding:13px 16px}
+.cell.chk input[type=checkbox]{width:25px;height:25px;min-height:25px;flex:none;accent-color:var(--accent);
+  margin:0;box-shadow:none;-webkit-appearance:auto;appearance:auto}
 
 /* chips, misc */
 .chip{display:inline-block;padding:2px 9px;margin:0 2px;font-size:12px;font-weight:600;
@@ -463,9 +478,10 @@ function viewAdmin(){
   return h;}
 
 /* ---------- modal ---------- */
-function gambarLapis(){
+function gambarLapis(keep){
   var el=$("#lapis");
   if(!MODAL&&!FORM){el.innerHTML="";return;}
+  var pv=keep?el.querySelector(".modal"):null, sc=pv?pv.scrollTop:0;
   var jud=FORM?(FORM.id?"Ubah catatan":"Catat kegiatan"):MODAL.judul;
   var isi=FORM?formCatat():MODAL.isi;
   var tombol=FORM?"batal":"tutup";
@@ -473,67 +489,61 @@ function gambarLapis(){
     '<div class="grip"></div>'+
     '<div class="tb"><span class="sp">'+esc(jud)+"</span>"+
     '<button class="iconbtn" data-aksi="'+tombol+'">&times;</button></div>'+
-    '<div class="body">'+isi+"</div></div></div>";}
+    '<div class="body">'+isi+"</div></div></div>";
+  if(sc){var nw=el.querySelector(".modal"); if(nw) nw.scrollTop=sc;}}
 function bukaModal(j,i){MODAL={judul:j,isi:i};FORM=null;gambarLapis();}
 function tutupModal(){MODAL=null;gambarLapis();}
 
 function formCatat(){
   var f=FORM;
   var akt=DB.jenis.filter(function(j){return j.aktif||j.id===f.jenis_id;});
-  var h="<label>Kegiatan</label><select data-f=jenis_id>"+
-    '<option value="">\u2014 pilih \u2014</option>'+
-    akt.map(function(j){return '<option value="'+j.id+'"'+(f.jenis_id===j.id?" selected":"")+">"+
-      esc(j.nama)+"</option>";}).join("")+"</select>"+
-    "<label>Keterangan (opsional)</label>"+
-    '<input data-f=judul value="'+esc(f.judul)+'" placeholder="mis. wilayah Bogor">'+
-    '<div class="baris"><div><label>Tanggal (boleh kosong)</label>'+
-      '<input data-f=tanggal type=date value="'+(f.tanggal||"")+'"></div>'+
-      '<div><label>Jumlah hari</label>'+
-      '<input data-f=jumlah_hari type=number min=1 max=60 value="'+num(f.jumlah_hari,1)+'"></div></div>'+
-    "<label>Lokasi (opsional)</label>"+
-    '<input data-f=lokasi value="'+esc(f.lokasi)+'">';
-
-  h+="<details"+(f.ubahBobot?" open":"")+'><summary>Bobot: '+TIER[f.tier]+" \u00b7 "+
-    BEBAN[f.tingkat_beban]+" (skor jalan "+bulat(skorJalan(f))+")</summary>"+
-    "<label>Tier perjalanan</label><div class=seg>"+
-    Object.keys(TIER).map(function(t){
-      return '<button data-aksi="set-tier" data-v="'+t+'" class="'+(f.tier===t?"tekan":"")+'">'+
-        TIERP[t]+"</button>";}).join("")+"</div>"+
-    "<label>Tingkat beban</label><div class=seg>"+
-    [1,2,3].map(function(n){
-      return '<button data-aksi="set-beban" data-v="'+n+'" class="'+(f.tingkat_beban===n?"tekan":"")+'">'+
-        BEBAN[n]+"</button>";}).join("")+"</div></details>";
-
+  var h='<div class="sect">Kegiatan</div><div class="list">'+
+    '<div class="ffield"><label>Jenis</label><select data-f=jenis_id>'+
+      '<option value="">\u2014 pilih \u2014</option>'+
+      akt.map(function(j){return '<option value="'+j.id+'"'+(f.jenis_id===j.id?" selected":"")+">"+esc(j.nama)+"</option>";}).join("")+"</select></div>"+
+    '<div class="ffield"><label>Keterangan</label><input data-f=judul value="'+esc(f.judul)+'" placeholder="opsional, mis. wilayah Bogor"></div>'+
+    '<div class="ffield"><label>Lokasi</label><input data-f=lokasi value="'+esc(f.lokasi)+'" placeholder="opsional"></div>'+
+    "</div>";
+  h+='<div class="sect">Jadwal</div><div class="list">'+
+    '<div class="ffield"><label>Tanggal</label><input data-f=tanggal type=date value="'+(f.tanggal||"")+'"></div>'+
+    '<div class="ffield"><label>Jumlah hari</label><input data-f=jumlah_hari type=number min=1 max=60 value="'+num(f.jumlah_hari,1)+'"></div>'+
+    "</div>"+'<div class="note">Tanggal boleh kosong \u2014 catatan tanpa tanggal tetap dihitung.</div>';
+  h+='<div class="sect">Bobot</div><div class="list"><details'+(f.ubahBobot?" open":"")+">"+
+    '<summary class="frow"><span class="fl">Skor jalan</span><span class="ctlval">'+TIERP[f.tier]+" \u00b7 "+BEBAN[f.tingkat_beban]+" \u00b7 "+bulat(skorJalan(f))+"</span></summary>"+
+    '<div style="padding:2px 16px 14px">'+
+      '<div class="cap">Tier perjalanan</div><div class=seg>'+
+      Object.keys(TIER).map(function(t){return '<button data-aksi="set-tier" data-v="'+t+'" class="'+(f.tier===t?"tekan":"")+'">'+TIERP[t]+"</button>";}).join("")+"</div>"+
+      '<div class="cap" style="margin-top:12px">Tingkat beban</div><div class=seg>'+
+      [1,2,3].map(function(n){return '<button data-aksi="set-beban" data-v="'+n+'" class="'+(f.tingkat_beban===n?"tekan":"")+'">'+BEBAN[n]+"</button>";}).join("")+"</div>"+
+    "</div></details></div>";
   var r={}; rekap(0).forEach(function(x){r[x.id]=x;});
   var rj=null;
   if(f.jenis_id){rj={}; rekap(f.jenis_id).forEach(function(x){rj[x.id]=x;});}
-  var terpilih=Object.keys(f.orang).filter(function(k){return f.orang[k];})
-    .map(function(k){return parseInt(k,10);});
+  var terpilih=Object.keys(f.orang).filter(function(k){return f.orang[k];}).map(function(k){return parseInt(k,10);});
   ["tim","tu"].forEach(function(kat){
     var cal=DB.anggota.filter(function(a){return a.kategori===kat&&(a.aktif||f.orang[a.id]);});
     if(!cal.length) return;
     cal.sort(function(a,b){return (r[a.id]?r[a.id].jalan:0)-(r[b.id]?r[b.id].jalan:0);});
-    h+='<fieldset class="grp"><legend>'+(kat==="tim"?"Siapa yang jalan":"Anak TU")+"</legend>"+
+    h+='<div class="sect">'+(kat==="tim"?"Siapa yang jalan":"Anak TU")+'</div><div class="list">'+
       cal.map(function(a){
         var bt=bentrokPada(a.id,f.tanggal,num(f.jumlah_hari,1),f.id);
         var s=r[a.id];
-        return '<label class="pilih" style="font-weight:normal;margin:0">'+
-          '<input type=checkbox data-orang="'+a.id+'"'+(f.orang[a.id]?" checked":"")+">"+
-          '<span class="nm"><b>'+esc(a.nama)+"</b>"+
-            '<div class="meta">'+(s?s.n:0)+"\u00d7 jalan \u00b7 skor "+(s?bulat(s.jalan):0)+
+        return '<label class="cell chk"><input type=checkbox data-orang="'+a.id+'"'+(f.orang[a.id]?" checked":"")+">"+
+          '<span class="tx"><div class="tl">'+esc(a.nama)+"</div>"+
+            '<div class="sb">'+(s?s.n:0)+"\u00d7 jalan \u00b7 skor "+(s?bulat(s.jalan):0)+
               (rj?' \u00b7 <b>'+(rj[a.id]?rj[a.id].n:0)+"\u00d7 kegiatan ini</b>":"")+"</div>"+
-            (bt.length?'<span class="chip w">bentrok: '+esc(namaKeg(bt[0]))+"</span>":"")+
-          "</span></label>";}).join("")+"</fieldset>";});
-
-  h+="<label>Ketua tim (opsional)</label><select data-f=ketua_id>"+
-    '<option value="">\u2014 tidak ditentukan \u2014</option>'+
-    terpilih.map(function(id){var a=angg(id);
-      return a?'<option value="'+id+'"'+(f.ketua_id===id?" selected":"")+">"+esc(a.nama)+"</option>":"";}).join("")+
-    "</select>";
-  h+="<label>Catatan (opsional)</label><textarea data-f=catatan>"+esc(f.catatan)+"</textarea>";
-  h+='<div class="aksi"><button data-aksi="simpan-keg">Simpan</button>'+
-    '<button data-aksi="batal">Batal</button>'+
-    (f.id?'<button data-aksi="hapus-keg" data-v="'+f.id+'">Hapus</button>':"")+"</div>";
+            (bt.length?'<div class="sb"><span class="chip w">bentrok: '+esc(namaKeg(bt[0]))+"</span></div>":"")+
+          "</span></label>";}).join("")+"</div>";});
+  h+='<div class="sect">Ketua &amp; catatan</div><div class="list">'+
+    '<div class="ffield"><label>Ketua tim</label><select data-f=ketua_id>'+
+      '<option value="">\u2014 tidak ditentukan \u2014</option>'+
+      terpilih.map(function(id){var a=angg(id);
+        return a?'<option value="'+id+'"'+(f.ketua_id===id?" selected":"")+">"+esc(a.nama)+"</option>":"";}).join("")+"</select></div>"+
+    '<div class="ffield"><label>Catatan</label><textarea data-f=catatan placeholder="opsional">'+esc(f.catatan)+"</textarea></div>"+
+    "</div>";
+  h+='<div class="aksi" style="margin-top:20px"><button data-aksi="simpan-keg">Simpan</button>'+
+    (f.id?'<button data-aksi="hapus-keg" data-v="'+f.id+'">Hapus</button>':"")+
+    '<button data-aksi="batal">Batal</button></div>';
   return h;}
 
 function bukaForm(k){
@@ -728,8 +738,8 @@ document.addEventListener("click",function(ev){
   if(a==="lihat"){detailOrang(parseInt(v,10));return;}
   if(a==="baru"){bukaForm(null);return;}
   if(a==="edit-keg"){var k=cari(DB.kegiatan,parseInt(v,10)); if(k) bukaForm(k); return;}
-  if(a==="set-tier"){bacaForm();FORM.tier=v;FORM.ubahBobot=true;gambarLapis();return;}
-  if(a==="set-beban"){bacaForm();FORM.tingkat_beban=parseInt(v,10);FORM.ubahBobot=true;gambarLapis();return;}
+  if(a==="set-tier"){bacaForm();FORM.tier=v;FORM.ubahBobot=true;gambarLapis(true);return;}
+  if(a==="set-beban"){bacaForm();FORM.tingkat_beban=parseInt(v,10);FORM.ubahBobot=true;gambarLapis(true);return;}
   if(a==="simpan-keg"){simpanKegiatan();return;}
   if(a==="hapus-keg"){
     if(!confirm("Hapus catatan ini?")) return;
@@ -802,7 +812,7 @@ document.addEventListener("change",function(ev){
     if(k==="jenis_id"&&FORM&&FORM.jenis_id&&!FORM.id){
       var j=cari(DB.jenis,FORM.jenis_id);
       if(j){FORM.tier=j.tier;FORM.tingkat_beban=j.tingkat_beban;}}
-    gambarLapis(); return;}
+    gambarLapis(true); return;}
   if(el.getAttribute("data-aksi")==="ptahun"){
     PERIODE.tahun=parseInt(el.value,10)||0; render(); return;}
   if(el.getAttribute("data-aksi")==="pjenis"){
