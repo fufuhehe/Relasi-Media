@@ -34,6 +34,7 @@ body{background:var(--face);color:var(--text);
 .in{border:1px solid;border-color:var(--shadow) var(--light) var(--light) var(--shadow);
   box-shadow:inset -1px -1px 0 var(--soft), inset 1px 1px 0 var(--dark);background:var(--face)}
 .win{margin-bottom:8px;padding:3px}
+.kepala{position:sticky;top:0;z-index:10}
 .tb{display:flex;align-items:center;gap:4px;padding:3px 3px 3px 6px;
   background:linear-gradient(90deg,var(--title1),var(--title2));color:var(--titletext);font-weight:bold}
 .tb .sp{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -99,7 +100,7 @@ details[open]>summary:before{content:"\25BE ";}
 </head>
 <body>
 
-<div class="out win">
+<div class="out win kepala">
   <div class="tb"><span class="sp" id="judul">Catatan Kegiatan Tim</span>
     <button class="out tbtn" data-aksi="tema" title="Tema">&#9680;</button></div>
   <div class="body" style="padding:5px 8px" id="ringkas">Memuat&hellip;</div>
@@ -231,13 +232,25 @@ function muat(){
     $("#isi").innerHTML='<div class="kosong">Gagal memuat.<br>'+esc(e.message)+"</div>";});}
 
 /* ---------- render ---------- */
+function ringkasHTML(){
+  var arr, j, blm;
+  if(TAB==="orang"){
+    var b=batas(), jf=PERIODE.jenis;
+    arr=DB.kegiatan.filter(function(k){return dalamPeriode(k,b)&&(!jf||k.jenis_id===jf);});
+    j=jf?cari(DB.jenis,jf):null;
+    blm=arr.filter(function(k){return !k.tanggal;}).length;
+    return "<b>"+arr.length+"</b> kegiatan"+(PERIODE.tahun?" di "+PERIODE.tahun:"")+
+      (j?" · "+esc(j.nama):"")+(blm?' · <b>'+blm+"</b> belum bertanggal":"");}
+  var cf=(TAB==="catat")?CATAT_JENIS:0;
+  arr=DB.kegiatan.filter(function(k){return !cf||k.jenis_id===cf;});
+  j=cf?cari(DB.jenis,cf):null;
+  blm=arr.filter(function(k){return !k.tanggal;}).length;
+  return "<b>"+arr.length+"</b> kegiatan"+(j?" · "+esc(j.nama):"")+
+    (blm?' · <b>'+blm+"</b> belum bertanggal":"");}
 function render(){
   var nm=DB.config.nama_tim||"Catatan Kegiatan Tim";
   $("#judul").textContent=nm; document.title=nm;
-  var b=batas(), tot=DB.kegiatan.filter(function(k){return dalamPeriode(k,b);}).length;
-  var blm=DB.kegiatan.filter(function(k){return !k.tanggal;}).length;
-  $("#ringkas").innerHTML="<b>"+tot+"</b> kegiatan"+(PERIODE.tahun?" di "+PERIODE.tahun:"")+
-    (blm?' \u00b7 <b>'+blm+"</b> belum bertanggal":"");
+  $("#ringkas").innerHTML=ringkasHTML();
   var t=[["catat","Catat"],["orang","Orang"],["admin",PIN?"Admin \u2713":"Admin"]];
   $("#tabs").innerHTML=t.map(function(x){
     return '<button class="tab'+(TAB===x[0]?" on":"")+'" data-aksi="tab" data-v="'+x[0]+'">'+x[1]+"</button>";}).join("");
