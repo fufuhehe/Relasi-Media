@@ -39,7 +39,7 @@ jangan jadi field wajib.**
 
 | Item | Detail |
 |---|---|
-| Frontend | Satu file `index.html` vanilla. Tanpa framework, tanpa build step. |
+| Frontend | Satu file `index.html` vanilla (desain **iOS modern**). Tanpa framework/build. `classic.html` = versi lama **Windows 98** (fallback, + tag git `win98`). |
 | Hosting | GitHub Pages dari branch `main`, root. Semua path relatif `./` |
 | Backend | Supabase project `wwgqgsjyaodxfuhjwksj` (numpang project ODOP), prefix tabel `keg_` |
 | Biaya | Rp 0/bulan |
@@ -78,7 +78,10 @@ Skor jalan (proxy uang, sama untuk semua peserta):
 | `luar_pp` | `poin_luar_pp × jumlah_hari` (default 2.5/hari) |
 | `luar_inap` | `poin_luar_inap + poin_per_malam × (jumlah_hari − 1)` (default 3 + 2/malam) |
 
-Skor beban: `jumlah_hari × tingkat_beban(1–3) × faktor_peran` (ketua 1.2, lainnya 1.0).
+Skor beban: `hari_kerja × tingkat_beban(1–3) × faktor_peran` (ketua 1.2, lainnya 1.0).
+`hari_kerja = jumlah_hari`, KECUALI tier `luar_inap` → `max(1, jumlah_hari − 2)` (hari pergi &
+pulang dianggap perjalanan, bukan kerja). **Hanya di `index.html` (iOS); `classic.html` masih
+pakai `jumlah_hari` penuh.** Skor jalan tidak terpengaruh — uang tetap dihitung penuh.
 
 Aturan yang gampang terlanggar saat menambah fitur:
 
@@ -111,11 +114,16 @@ Aturan yang gampang terlanggar saat menambah fitur:
 
 ## Estetika
 
-Sengaja retro **Windows 98**: bevel border, abu `#c0c0c0`, title bar navy, font MS Sans Serif.
-Dark mode meniru skema "High Contrast Black". **Jangan "dimodernkan" tanpa diminta.**
+**Default sekarang desain iOS modern** (`index.html`): kartu rounded, font sistem, aksen biru
+iOS `#007aff`, dark mode auto (`prefers-color-scheme`), tab bar di bawah, modal bottom-sheet.
+Semua warna lewat CSS variable di `:root`.
 
-Ini skin di atas layout mobile-first, bukan simulasi desktop. Jangan bikin window yang bisa
-digeser atau taskbar — dia buka ini dari HP.
+Versi retro **Windows 98** dipertahankan sebagai `classic.html` (+ tag git `win98`) sebagai
+fallback — panduan retro ini berlaku untuk file itu, BUKAN `index.html`: bevel border, abu
+`#c0c0c0`, title bar navy, font MS Sans Serif, dark mode "High Contrast Black".
+
+Dua-duanya skin di atas layout mobile-first, bukan simulasi desktop. Jangan bikin window yang
+bisa digeser atau taskbar — dia buka ini dari HP.
 
 ---
 

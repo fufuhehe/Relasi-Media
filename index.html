@@ -1,116 +1,226 @@
 <!DOCTYPE html>
-<html lang="id" data-tema="terang">
+<html lang="id">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Catatan Kegiatan Tim</title>
 <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#000080">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Kegiatan">
 <style>
 :root{
-  --face:#c0c0c0; --light:#ffffff; --soft:#dfdfdf; --shadow:#808080; --dark:#000000;
-  --text:#000000; --textdim:#404040; --field:#ffffff; --fieldtext:#000000;
-  --title1:#000080; --title2:#1084d0; --titletext:#ffffff;
-  --sel:#000080; --seltext:#ffffff; --bar1:#000080; --bar2:#808000; --alert:#a00000;
+  --bg:#f2f2f7; --card:#ffffff; --card2:#f2f2f7;
+  --text:#1c1c1e; --textdim:#8a8a8e; --sep:#e4e4e9;
+  --accent:#007aff; --accenttext:#ffffff;
+  --field:#ffffff; --fieldtext:#1c1c1e;
+  --danger:#ff3b30; --warn:#ff9500;
+  --bar1:#007aff; --bar2:#ff9f0a;
+  --shadow:0 1px 2px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.05);
+  --blur:saturate(180%) blur(20px);
 }
 html[data-tema="gelap"]{
-  --face:#000000; --light:#ffffff; --soft:#c0c0c0; --shadow:#808080; --dark:#ffffff;
-  --text:#ffffff; --textdim:#c0c0c0; --field:#000000; --fieldtext:#00ff00;
-  --title1:#008080; --title2:#00c0c0; --titletext:#ffffff;
-  --sel:#008080; --seltext:#ffffff; --bar1:#00ffff; --bar2:#ffff00; --alert:#ff6060;
+  --bg:#000000; --card:#1c1c1e; --card2:#2c2c2e;
+  --text:#ffffff; --textdim:#98989f; --sep:#38383a;
+  --accent:#0a84ff; --field:#1c1c1e; --fieldtext:#ffffff;
+  --danger:#ff453a; --warn:#ff9f0a; --bar1:#0a84ff; --bar2:#ff9f0a;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+}
+@media (prefers-color-scheme:dark){
+  html:not([data-tema="terang"]){
+    --bg:#000000; --card:#1c1c1e; --card2:#2c2c2e;
+    --text:#ffffff; --textdim:#98989f; --sep:#38383a;
+    --accent:#0a84ff; --field:#1c1c1e; --fieldtext:#ffffff;
+    --danger:#ff453a; --warn:#ff9f0a; --bar1:#0a84ff; --bar2:#ff9f0a;
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+  }
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
-body{background:var(--face);color:var(--text);
-  font-family:"MS Sans Serif",Tahoma,Verdana,Geneva,sans-serif;
-  font-size:14px;line-height:1.35;padding:6px 6px 40px}
-.out{border:1px solid;border-color:var(--light) var(--dark) var(--dark) var(--light);
-  box-shadow:inset -1px -1px 0 var(--shadow), inset 1px 1px 0 var(--soft);background:var(--face)}
-.in{border:1px solid;border-color:var(--shadow) var(--light) var(--light) var(--shadow);
-  box-shadow:inset -1px -1px 0 var(--soft), inset 1px 1px 0 var(--dark);background:var(--face)}
-.win{margin-bottom:8px;padding:3px}
-.kepala{position:sticky;top:0;z-index:10}
-.tb{display:flex;align-items:center;gap:4px;padding:3px 3px 3px 6px;
-  background:linear-gradient(90deg,var(--title1),var(--title2));color:var(--titletext);font-weight:bold}
-.tb .sp{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tbtn{width:24px;height:22px;font-size:11px;font-weight:bold;line-height:1;padding:0;flex:none;min-height:22px}
-.body{padding:8px}
-button,.btn{font-family:inherit;font-size:14px;background:var(--face);color:var(--text);
-  border:1px solid;border-color:var(--light) var(--dark) var(--dark) var(--light);
-  box-shadow:inset -1px -1px 0 var(--shadow), inset 1px 1px 0 var(--soft);
-  min-height:36px;padding:4px 12px;cursor:pointer}
-button:active,.btn:active{border-color:var(--shadow) var(--light) var(--light) var(--shadow);
-  box-shadow:inset -1px -1px 0 var(--soft), inset 1px 1px 0 var(--dark);padding:5px 11px 3px 13px}
-button.kecil{min-height:28px;padding:2px 8px;font-size:13px}
-button.tekan{border-color:var(--shadow) var(--light) var(--light) var(--shadow);
-  box-shadow:inset -1px -1px 0 var(--soft), inset 1px 1px 0 var(--dark);font-weight:bold}
-button.besar{width:100%;min-height:44px;font-weight:bold;font-size:15px}
-input,select,textarea{font-family:inherit;font-size:14px;background:var(--field);color:var(--fieldtext);
-  border:1px solid;border-color:var(--shadow) var(--light) var(--light) var(--shadow);
-  box-shadow:inset -1px -1px 0 var(--soft), inset 1px 1px 0 var(--dark);
-  padding:6px;min-height:34px;width:100%}
-textarea{min-height:52px;resize:vertical}
-label{display:block;margin:9px 0 3px;font-weight:bold;font-size:13px}
-.baris{display:flex;gap:6px;flex-wrap:wrap}
+body{background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;
+  padding:0 14px calc(76px + env(safe-area-inset-bottom))}
+
+/* nav header */
+.nav{position:sticky;top:0;z-index:30;margin:0 -14px;padding:10px 16px 10px;
+  background:var(--bg);background:color-mix(in srgb,var(--bg) 80%,transparent);
+  -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
+.navrow{display:flex;align-items:center;gap:8px}
+.title{flex:1;font-size:25px;font-weight:800;letter-spacing:-.03em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iconbtn{width:36px;height:36px;min-height:36px;border-radius:50%;flex:none;
+  background:var(--card2);border:1px solid var(--sep);color:var(--accent);
+  font-size:17px;padding:0;box-shadow:none;display:flex;align-items:center;justify-content:center}
+.sub{color:var(--textdim);font-size:14px;margin-top:3px}
+.sub b{color:var(--text);font-weight:600}
+
+/* section + inset list */
+.sect{font-size:13px;font-weight:600;color:var(--textdim);text-transform:uppercase;
+  letter-spacing:.04em;margin:22px 6px 7px}
+.list{background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.cell{display:flex;align-items:center;gap:12px;padding:12px 16px;min-height:46px;
+  cursor:pointer;transition:background .1s}
+.cell+.cell{border-top:1px solid var(--sep)}
+.cell:active{background:var(--card2)}
+.cell.static{cursor:default}
+.cell.static:active{background:none}
+.cell .tx{flex:1;min-width:0}
+.cell .tl{font-weight:600;font-size:16px;letter-spacing:-.01em}
+.cell .sb{font-size:13px;color:var(--textdim);margin-top:1px;overflow:hidden;text-overflow:ellipsis}
+.cell .sb.nm{color:var(--text);opacity:.85;white-space:normal;margin-top:3px}
+.val{flex:none;color:var(--textdim);font-variant-numeric:tabular-nums;font-size:15px}
+.chev{flex:none;width:8px;height:8px;border-right:2px solid var(--textdim);
+  border-bottom:2px solid var(--textdim);transform:rotate(-45deg);opacity:.5}
+.note{font-size:12px;color:var(--textdim);margin:8px 6px 0;line-height:1.4}
+.desc{font-size:16px;font-weight:500;color:var(--text);margin:0 0 10px;line-height:1.4}
+.filters{display:flex;gap:10px;margin:6px 0 2px}
+.filters>*{flex:1}
+
+/* person row */
+.cell.prow{flex-direction:column;align-items:stretch;gap:0}
+.prow-top{display:flex;align-items:center;gap:8px;font-size:16px}
+.prow-top b{font-weight:600}
+.prow-top .kali{margin-left:auto;color:var(--accent);font-weight:600;font-variant-numeric:tabular-nums}
+.prow-bars{display:flex;flex-direction:column;gap:5px;margin-top:9px}
+.mb{display:flex;align-items:center;gap:9px}
+.mbl{width:42px;font-size:10px;font-weight:600;color:var(--textdim);text-transform:uppercase;letter-spacing:.03em}
+.mini{flex:1;height:7px;background:var(--sep);border-radius:4px;overflow:hidden}
+.mini i{display:block;height:100%;border-radius:4px}
+.mini i.a{background:var(--bar1)} .mini i.b{background:var(--bar2)}
+.mbv{width:44px;text-align:right;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.comp{margin-top:9px;font-variant-numeric:tabular-nums}
+
+/* stat cards */
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 2px}
+.statc{flex:1 1 calc(50% - 5px);background:var(--card);border-radius:14px;
+  box-shadow:var(--shadow);padding:14px 12px;text-align:center}
+.statc .v{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.statc .l{font-size:12px;color:var(--textdim);margin-top:3px}
+
+/* buttons */
+button,.btn{font-family:inherit;font-size:16px;font-weight:500;background:var(--card2);
+  color:var(--accent);border:1px solid var(--sep);border-radius:12px;min-height:44px;
+  padding:10px 16px;cursor:pointer;box-shadow:none;transition:opacity .12s,transform .05s}
+button:active,.btn:active{opacity:.5;transform:scale(.98)}
+button.kecil{min-height:34px;padding:6px 13px;font-size:14px;border-radius:10px}
+button.besar,.big{width:100%;min-height:50px;font-weight:600;font-size:17px;border-radius:14px;
+  background:var(--accent);color:var(--accenttext);border:none}
+button.tekan{background:var(--accent);color:var(--accenttext);border-color:var(--accent);font-weight:600}
+.aksi>button:first-child{background:var(--accent);color:var(--accenttext);border:none;font-weight:600}
+[data-aksi="hapus-keg"],[data-aksi="jenis-hapus"],[data-aksi="ang-hapus"]{
+  background:var(--card2)!important;color:var(--danger)!important;border:1px solid var(--sep)!important;font-weight:500}
+
+/* inputs & forms */
+input,select,textarea{font-family:inherit;font-size:16px;background:var(--field);color:var(--fieldtext);
+  border:1px solid var(--sep);border-radius:12px;padding:11px 13px;min-height:44px;width:100%;
+  box-shadow:none;-webkit-appearance:none;appearance:none}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath fill='%238a8a8e' d='M6 8 0 2 1.5.5 6 5 10.5.5 12 2z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center;padding-right:36px}
+textarea{min-height:84px;resize:vertical}
+label{display:block;margin:15px 0 6px;font-weight:600;font-size:14px;color:var(--text)}
+.baris{display:flex;gap:10px;flex-wrap:wrap}
 .baris>*{flex:1 1 130px}
-.aksi{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.aksi{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
 .aksi>button{flex:1 1 auto}
-.seg{display:flex;gap:3px}.seg>button{flex:1;min-height:32px;font-size:12px;padding:2px 4px}
-.tabs{display:flex;gap:2px;margin-bottom:-1px;position:relative;z-index:2}
-.tab{flex:1;background:var(--face);border:1px solid;
-  border-color:var(--light) var(--dark) var(--dark) var(--light);border-bottom:none;
-  padding:8px 6px;min-height:0;font-size:13px;box-shadow:inset 1px 1px 0 var(--soft)}
-.tab.on{font-weight:bold;padding-bottom:10px;margin-top:-2px}
-.grp{border:1px solid;border-color:var(--shadow) var(--light) var(--light) var(--shadow);
-  padding:8px;margin:12px 0 0}
-.grp>legend{padding:0 4px;font-weight:bold;font-size:13px}
-.kart{padding:8px;margin-bottom:6px;cursor:pointer}
-.kart .jud{font-weight:bold}
-.meta{font-size:12px;color:var(--textdim)}
-.chip{display:inline-block;padding:1px 5px;margin:2px 3px 0 0;font-size:11px;
-  border:1px solid var(--dark);background:var(--face)}
-.chip.w{border-color:var(--alert);color:var(--alert);font-weight:bold}
-table{border-collapse:collapse;width:100%;font-size:13px}
-th,td{padding:5px;text-align:left;border-bottom:1px solid var(--shadow)}
-th{font-size:12px;border-bottom:2px solid var(--shadow)}
-td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.bar{height:9px;background:var(--field);border:1px solid var(--shadow);min-width:44px}
-.bar i{display:block;height:100%}
-.bar i.a{background:var(--bar1)} .bar i.b{background:var(--bar2)}
-.pilih{display:flex;align-items:center;gap:9px;padding:8px 4px;border-bottom:1px solid var(--shadow)}
-.pilih input[type=checkbox]{width:24px;height:24px;min-height:24px;flex:none;box-shadow:none;margin:0}
+.seg{display:flex;gap:6px}
+.seg>button{flex:1;min-height:40px;font-size:14px;padding:6px 4px;border-radius:10px}
+.grp{border:none;background:var(--card);border-radius:14px;padding:4px 16px 14px;
+  margin:16px 0 0;box-shadow:var(--shadow)}
+.grp>legend{padding:13px 0 4px;font-weight:700;font-size:16px;color:var(--text);float:none}
+.pilih{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--sep)}
+.pilih:last-child{border-bottom:none}
+.pilih input[type=checkbox]{width:25px;height:25px;min-height:25px;flex:none;
+  accent-color:var(--accent);box-shadow:none;margin:0;-webkit-appearance:auto;appearance:auto}
 .pilih .nm{flex:1;min-width:0}
-.kosong{padding:18px;text-align:center;color:var(--textdim);font-size:13px}
-.bawah{position:fixed;left:0;right:0;bottom:0;background:var(--face);border-top:1px solid var(--light);
-  padding:3px 6px;display:flex;gap:6px;align-items:center;font-size:12px;box-shadow:0 -1px 0 var(--shadow)}
-.bawah .st{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  border:1px solid;border-color:var(--shadow) var(--light) var(--light) var(--shadow);padding:3px 5px}
-.tutup{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;overflow:auto;padding:8px}
-.modal{max-width:600px;margin:10px auto}
-details>summary{cursor:pointer;padding:7px 4px;font-weight:bold;font-size:13px;list-style:none}
+.ffield{padding:9px 16px}
+.ffield+.ffield{border-top:1px solid var(--sep)}
+.ffield>label{display:block;margin:0 0 3px;font-size:12px;font-weight:600;color:var(--textdim);
+  text-transform:uppercase;letter-spacing:.03em}
+.ffield input,.ffield select,.ffield textarea{border:none;background-color:transparent;box-shadow:none;
+  padding:0;min-height:32px;border-radius:0;width:100%;font-size:16px}
+.ffield textarea{min-height:60px;padding:2px 0;resize:vertical}
+.ffield select{padding-right:22px;background-position:right 2px center}
+.frow{display:flex;align-items:center;gap:10px;padding:13px 16px}
+.frow .fl{font-weight:500;font-size:16px}
+.ctlval{margin-left:auto;color:var(--textdim);font-size:15px}
+.cap{font-size:12px;font-weight:600;color:var(--textdim);text-transform:uppercase;letter-spacing:.03em;margin:0 0 6px}
+details>summary.frow{padding:13px 16px}
+.cell.chk input[type=checkbox]{width:25px;height:25px;min-height:25px;flex:none;accent-color:var(--accent);
+  margin:0;box-shadow:none;-webkit-appearance:auto;appearance:auto}
+
+/* chips, misc */
+.chip{display:inline-block;padding:2px 9px;margin:0 2px;font-size:12px;font-weight:600;
+  border:none;border-radius:999px;background:var(--sep);color:var(--textdim);vertical-align:middle}
+.chip.w{background:rgba(255,59,48,.15);color:var(--danger)}
+.kosong{padding:30px 18px;text-align:center;color:var(--textdim);font-size:15px}
+.bar{height:8px;background:var(--sep);border:none;border-radius:4px;min-width:44px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:4px}
+.bar i.a{background:var(--bar1)} .bar i.b{background:var(--bar2)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{padding:10px 6px;text-align:left;border-bottom:1px solid var(--sep)}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* bottom tab bar */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;
+  background:var(--card);background:color-mix(in srgb,var(--card) 82%,transparent);
+  -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  border-top:1px solid var(--sep);padding-bottom:env(safe-area-inset-bottom)}
+.tabbar button{flex:1;background:none;border:none;box-shadow:none;min-height:0;border-radius:0;
+  padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;gap:3px;
+  color:var(--textdim);font-size:11px;font-weight:500}
+.tabbar button:active{opacity:.5;transform:none}
+.tabbar button.on{color:var(--accent)}
+.tabbar svg{width:25px;height:25px;display:block}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom));z-index:60;
+  transform:translateX(-50%) translateY(10px);background:var(--text);color:var(--bg);
+  font-size:14px;font-weight:500;padding:10px 18px;border-radius:999px;max-width:82%;text-align:center;
+  box-shadow:0 6px 20px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+.toast.on{opacity:.97;transform:translateX(-50%) translateY(0)}
+
+/* bottom sheet modal */
+.tutup{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;overflow:auto;
+  display:flex;align-items:flex-end;justify-content:center;padding:0;
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.modal{max-width:600px;width:100%;margin:0;background:var(--card);
+  border-radius:22px 22px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.3);max-height:94vh;overflow:auto}
+.grip{width:38px;height:5px;border-radius:3px;background:var(--sep);margin:9px auto 0}
+.modal .tb{display:flex;align-items:center;gap:8px;padding:6px 16px 2px}
+.modal .tb .sp{flex:1;font-size:22px;font-weight:700;letter-spacing:-.02em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.modal .body{padding:8px 16px 20px}
+
+/* collapsible */
+details>summary{cursor:pointer;list-style:none;display:flex;align-items:center;
+  padding:11px 2px;font-weight:600;font-size:15px}
 details>summary::-webkit-details-marker{display:none}
-details>summary:before{content:"\25B8 ";}
-details[open]>summary:before{content:"\25BE ";}
+details>summary:after{content:"";margin-left:auto;width:8px;height:8px;
+  border-right:2px solid var(--textdim);border-bottom:2px solid var(--textdim);
+  transform:rotate(-45deg);transition:transform .2s;opacity:.6}
+details[open]>summary:after{transform:rotate(45deg)}
 </style>
 </head>
 <body>
 
-<div class="out win kepala">
-  <div class="tb"><span class="sp" id="judul">Catatan Kegiatan Tim</span>
-    <button class="out tbtn" data-aksi="tema" title="Tema">&#9680;</button></div>
-  <div class="body" style="padding:5px 8px" id="ringkas">Memuat&hellip;</div>
-</div>
+<header class="nav">
+  <div class="navrow">
+    <span class="title" id="judul">Catatan Kegiatan Tim</span>
+    <button class="iconbtn" data-aksi="muat" title="Muat ulang" aria-label="Muat ulang">&#8635;</button>
+    <button class="iconbtn" data-aksi="tema" title="Tema" aria-label="Tema">&#9680;</button>
+  </div>
+  <div class="sub" id="ringkas">Memuat&hellip;</div>
+</header>
 
-<div class="tabs" id="tabs"></div>
-<div class="out win" style="padding:8px"><div id="isi" class="kosong">Memuat data&hellip;</div></div>
+<main id="isi"><div class="kosong">Memuat data&hellip;</div></main>
 
-<div class="bawah"><span class="st" id="status">Siap</span>
-  <button class="kecil" data-aksi="muat">Refresh</button></div>
+<nav class="tabbar" id="tabs"></nav>
+<div id="toast" class="toast"></div>
 <div id="lapis"></div>
 
 <script>
@@ -134,7 +244,9 @@ var BLN=["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","
 function $(s){return document.querySelector(s);}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
-function stat(m){var e=$("#status"); if(e) e.textContent=m;}
+var TOASTT=null;
+function stat(m){var e=$("#toast"); if(!e) return; e.textContent=m; e.classList.add("on");
+  if(TOASTT) clearTimeout(TOASTT); TOASTT=setTimeout(function(){e.classList.remove("on");},2000);}
 function num(v,d){var n=parseFloat(v); return isFinite(n)?n:d;}
 function cfg(k,d){return num(DB.config[k],d);}
 function bulat(n){return Math.round(n*10)/10;}
@@ -168,7 +280,9 @@ function skorJalan(k){
   if(k.tier==="luar_pp")   return cfg("poin_luar_pp",2.5)*h;
   return cfg("poin_dalam_kota",1)*h;}
 function skorBeban(k,ketua){
-  return Math.max(1,num(k.jumlah_hari,1))*num(k.tingkat_beban,2)*(ketua?cfg("faktor_ketua",1.2):1);}
+  var hari=Math.max(1,num(k.jumlah_hari,1));
+  var kerja=(k.tier==="luar_inap")?Math.max(1,hari-2):hari;   // nginap: buang hari pergi & pulang
+  return kerja*num(k.tingkat_beban,2)*(ketua?cfg("faktor_ketua",1.2):1);}
 function batas(){
   if(!PERIODE.tahun) return {dari:null,sampai:null};
   return {dari:PERIODE.tahun+"-01-01",sampai:PERIODE.tahun+"-12-31"};}
@@ -247,53 +361,55 @@ function ringkasHTML(){
   blm=arr.filter(function(k){return !k.tanggal;}).length;
   return "<b>"+arr.length+"</b> kegiatan"+(j?" · "+esc(j.nama):"")+
     (blm?' · <b>'+blm+"</b> belum bertanggal":"");}
+var ICO={
+  catat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>',
+  orang:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M16 6.6a3 3 0 0 1 0 5.4M17.6 19c0-2.2-1-3.9-2.4-4.8"/></svg>',
+  admin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.4"/><circle cx="7" cy="17" r="2.4"/></svg>'};
 function render(){
   var nm=DB.config.nama_tim||"Catatan Kegiatan Tim";
   $("#judul").textContent=nm; document.title=nm;
   $("#ringkas").innerHTML=ringkasHTML();
-  var t=[["catat","Catat"],["orang","Orang"],["admin",PIN?"Admin \u2713":"Admin"]];
+  var t=[["catat","Catat"],["orang","Orang"],["admin","Admin"]];
   $("#tabs").innerHTML=t.map(function(x){
-    return '<button class="tab'+(TAB===x[0]?" on":"")+'" data-aksi="tab" data-v="'+x[0]+'">'+x[1]+"</button>";}).join("");
+    return '<button class="'+(TAB===x[0]?"on":"")+'" data-aksi="tab" data-v="'+x[0]+'">'+ICO[x[0]]+
+      "<span>"+x[1]+(x[0]==="admin"&&PIN?" \u2713":"")+"</span></button>";}).join("");
   var isi=$("#isi"); isi.className="";
   isi.innerHTML = TAB==="catat"?viewCatat() : TAB==="orang"?viewOrang() : viewAdmin();
   gambarLapis();}
 
 function viewCatat(){
   var h="";
-  if(PIN) h+='<button class="besar" data-aksi="baru">+ Catat kegiatan</button>';
-  else h+='<div class="meta" style="padding:4px 0">Mode lihat saja. Masuk lewat tab Admin untuk mencatat.</div>';
-  h+='<div class="baris" style="margin:8px 0">'+
-    '<select data-aksi="cjenis"><option value="0">Semua kegiatan</option>'+
+  if(PIN) h+='<button class="big" data-aksi="baru" style="margin-top:4px">+ Catat kegiatan</button>';
+  else h+='<div class="kosong" style="padding:14px 4px">Mode lihat saja. Masuk lewat tab Admin untuk mencatat.</div>';
+  h+='<div class="filters" style="margin-top:12px"><select data-aksi="cjenis"><option value="0">Semua kegiatan</option>'+
     DB.jenis.map(function(j){return '<option value="'+j.id+'"'+(CATAT_JENIS===j.id?" selected":"")+
       ">"+esc(j.nama)+"</option>";}).join("")+"</select></div>";
   var semua=DB.kegiatan.filter(function(k){return !CATAT_JENIS||k.jenis_id===CATAT_JENIS;});
   if(!semua.length) return h+'<div class="kosong">'+
-    (DB.kegiatan.length?"Tidak ada catatan untuk filter ini.":"Belum ada catatan.<br>Mulai dari tombol di atas.")+"</div>";
+    (DB.kegiatan.length?"Tidak ada catatan untuk filter ini.":"Belum ada catatan.")+"</div>";
   var tanpa=semua.filter(function(k){return !k.tanggal;});
   var ada=semua.filter(function(k){return k.tanggal;}).sort(function(a,b){
     if(a.tanggal!==b.tanggal) return a.tanggal<b.tanggal?1:-1;
     return a.dibuat<b.dibuat?1:-1;});
-  function kartu(k){
+  function cell(k){
     var o=orangDi(k.id);
     var nama=o.length?o.map(function(a){return esc(a.nama)+(k.ketua_id===a.id?" *":"");}).join(", ")
       :"belum ada nama";
-    return '<div class="in kart" data-aksi="detail" data-v="'+k.id+'">'+
-      '<div class="jud">'+esc(namaKeg(k))+"</div>"+
-      '<div class="meta">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+
-        (k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
-      '<div class="meta">'+nama+"</div></div>";}
-  h+='<div style="margin-top:8px">';
+    return '<div class="cell" data-aksi="detail" data-v="'+k.id+'"><div class="tx">'+
+      '<div class="tl">'+esc(namaKeg(k))+"</div>"+
+      '<div class="sb">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+(k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
+      '<div class="sb nm">'+nama+"</div></div><span class=\"chev\"></span></div>";}
   if(tanpa.length)
-    h+="<details><summary>Belum bertanggal ("+tanpa.length+")</summary>"+
-      tanpa.map(kartu).join("")+"</details>";
-  var bulanKini="";
+    h+='<details style="margin-top:6px"><summary class="sect" style="margin:20px 6px 7px">Belum bertanggal ('+tanpa.length+')</summary>'+
+      '<div class="list">'+tanpa.map(cell).join("")+"</div></details>";
+  var bulan="";
   ada.forEach(function(k){
     var p=k.tanggal.split("-"), key=p[0]+"-"+p[1];
-    if(key!==bulanKini){bulanKini=key;
-      h+='<div class="meta" style="margin:10px 0 2px;font-weight:bold">'+BLN[parseInt(p[1],10)]+" "+p[0]+"</div>";}
-    h+=kartu(k);});
-  h+="</div>";
-  if(PIN) h+='<div class="aksi"><button data-aksi="wa-rekap">Salin rekap ke WA</button>'+
+    if(key!==bulan){ if(bulan) h+="</div>"; bulan=key;
+      h+='<div class="sect">'+BLN[parseInt(p[1],10)]+" "+p[0]+'</div><div class="list">';}
+    h+=cell(k);});
+  if(bulan) h+="</div>";
+  if(PIN) h+='<div class="aksi" style="margin-top:20px"><button data-aksi="wa-rekap">Salin rekap ke WA</button>'+
              '<button data-aksi="csv">Export CSV</button></div>';
   return h;}
 
@@ -301,14 +417,11 @@ function viewOrang(){
   var r=rekap(), h="";
   var thn=[], y=new Date().getFullYear();
   for(var i=y;i>=y-3;i--) thn.push(i);
-  h+='<div class="baris" style="margin-bottom:8px">'+
-    '<select data-aksi="ptahun"><option value="0"'+(PERIODE.tahun?"":" selected")+
-      ">Semua waktu</option>"+
-    thn.map(function(t){return '<option value="'+t+'"'+(PERIODE.tahun===t?" selected":"")+">"+t+"</option>";}).join("")+
-    "</select>"+
+  h+='<div class="filters" style="margin-top:8px">'+
+    '<select data-aksi="ptahun"><option value="0"'+(PERIODE.tahun?"":" selected")+">Semua waktu</option>"+
+    thn.map(function(t){return '<option value="'+t+'"'+(PERIODE.tahun===t?" selected":"")+">"+t+"</option>";}).join("")+"</select>"+
     '<select data-aksi="pjenis"><option value="0">Semua kegiatan</option>'+
-    DB.jenis.map(function(j){return '<option value="'+j.id+'"'+(PERIODE.jenis===j.id?" selected":"")+
-      ">"+esc(j.nama)+"</option>";}).join("")+"</select></div>";
+    DB.jenis.map(function(j){return '<option value="'+j.id+'"'+(PERIODE.jenis===j.id?" selected":"")+">"+esc(j.nama)+"</option>";}).join("")+"</select></div>";
   ["tim","tu"].forEach(function(kat){
     var rows=r.filter(function(x){return x.kategori===kat&&(x.aktif||x.n>0);});
     if(!rows.length) return;
@@ -316,133 +429,123 @@ function viewOrang(){
     var pakai=rows.filter(function(x){return x.n>0;});
     var aJ=pakai.length?pakai.reduce(function(s,x){return s+x.jalan;},0)/pakai.length:0;
     var aB=pakai.length?pakai.reduce(function(s,x){return s+x.beban;},0)/pakai.length:0;
-    var mJ=1,mB=1;
-    rows.forEach(function(x){mJ=Math.max(mJ,x.jalan);mB=Math.max(mB,x.beban);});
-    h+='<fieldset class="grp"><legend>'+(kat==="tim"?"Tim inti":"Anak TU")+
-      "</legend><table><tr><th>Nama</th><th>Jalan</th><th>Beban</th><th class=n>Kali</th></tr>"+
+    var mJ=1,mB=1; rows.forEach(function(x){mJ=Math.max(mJ,x.jalan);mB=Math.max(mB,x.beban);});
+    h+='<div class="sect">'+(kat==="tim"?"Tim inti":"Anak TU")+'</div><div class="list">'+
       rows.map(function(x){
         var flag=(!PERIODE.jenis&&pakai.length>1&&x.beban>aB&&x.jalan<aJ);
-        return '<tr data-aksi="lihat" data-v="'+x.id+'" style="cursor:pointer">'+
-          "<td><b>"+esc(x.nama)+"</b>"+
-            (flag?'<div class="chip w">jarang jalan, beban tinggi</div>':"")+"</td>"+
-          '<td><div class="bar"><i class="a" style="width:'+(x.jalan/mJ*100).toFixed(0)+'%"></i></div>'+
-            '<span class="meta">'+bulat(x.jalan)+"</span></td>"+
-          '<td><div class="bar"><i class="b" style="width:'+(x.beban/mB*100).toFixed(0)+'%"></i></div>'+
-            '<span class="meta">'+bulat(x.beban)+"</span></td>"+
-          '<td class="n">'+x.n+
-            '<div class="meta">'+x.tier.dalam_kota+" · "+x.tier.luar_pp+" · "+x.tier.luar_inap+
-            "</div></td></tr>";}).join("")+"</table>"+
-      '<div class="meta" style="margin-top:6px">'+(PERIODE.jenis?
-        "Kolom <b>Kali</b> = berapa kali ikut kegiatan ini.":
-        "Urut dari yang paling jarang jalan.")+
-        " Angka di bawah Kali: dalam kota · luar PP · nginep. Ketuk nama untuk riwayat.</div>"+
-      "</fieldset>";});
+        return '<div class="cell prow" data-aksi="lihat" data-v="'+x.id+'">'+
+          '<div class="prow-top"><b>'+esc(x.nama)+"</b>"+(flag?' <span class="chip w">jarang jalan, beban tinggi</span>':"")+
+            '<span class="kali">'+x.n+'×</span></div>'+
+          '<div class="prow-bars">'+
+            '<div class="mb"><span class="mbl">Jalan</span><div class="mini"><i class="a" style="width:'+(x.jalan/mJ*100).toFixed(0)+'%"></i></div><span class="mbv">'+bulat(x.jalan)+"</span></div>"+
+            '<div class="mb"><span class="mbl">Beban</span><div class="mini"><i class="b" style="width:'+(x.beban/mB*100).toFixed(0)+'%"></i></div><span class="mbv">'+bulat(x.beban)+"</span></div>"+
+          "</div>"+
+          '<div class="meta comp">'+x.tier.dalam_kota+" · "+x.tier.luar_pp+" · "+x.tier.luar_inap+
+            ' <span style="opacity:.7">dlm kota · luar PP · nginep</span></div>'+
+        "</div>";}).join("")+"</div>"+
+      '<div class="note">'+(PERIODE.jenis?"Kali = berapa kali ikut kegiatan ini.":"Urut dari yang paling jarang jalan.")+
+        " Ketuk untuk riwayat.</div>";});
   return h||'<div class="kosong">Belum ada anggota.</div>';}
 
 function viewAdmin(){
-  if(!PIN) return '<fieldset class="grp"><legend>Masuk admin</legend>'+
-    "<label>PIN</label><input type=password inputmode=numeric id=inpPin>"+
-    '<div class="aksi"><button data-aksi="login">Masuk</button></div>'+
-    '<div class="meta" style="margin-top:8px">PIN awal 1234 \u2014 ganti setelah masuk.</div></fieldset>';
-  var h='<div class="aksi" style="margin:0 0 4px"><button data-aksi="logout">Keluar admin</button></div>';
-  h+='<fieldset class="grp"><legend>Daftar kegiatan</legend>'+
-    '<div class="meta">Bobot nempel di sini, jadi pas nyatat tinggal pilih.</div>'+
-    '<div class="aksi" style="margin:6px 0"><button data-aksi="jenis-baru">+ Tambah kegiatan</button></div>'+
+  if(!PIN) return '<div class="sect">Masuk admin</div>'+
+    '<div class="list"><div class="ffield"><label>PIN</label><input type=password inputmode=numeric id=inpPin></div></div>'+
+    '<div class="aksi" style="margin-top:14px"><button data-aksi="login">Masuk</button></div>'+
+    '<div class="note">PIN awal 1234 \u2014 ganti setelah masuk.</div>';
+  var h='<div style="margin:6px 0 2px"><button data-aksi="logout" style="width:100%">Keluar admin</button></div>';
+  h+='<div class="sect">Daftar kegiatan</div>'+
+    '<div class="note" style="margin:0 6px 7px">Bobot nempel di sini, jadi pas nyatat tinggal pilih.</div>'+
+    '<div class="list">'+
     (DB.jenis.length?DB.jenis.map(function(j){
-      return '<div class="pilih"><span class="nm">'+esc(j.nama)+
-        '<div class="meta">'+TIER[j.tier]+" \u00b7 "+BEBAN[j.tingkat_beban]+
-        (j.aktif?"":" \u00b7 nonaktif")+"</div></span>"+
+      return '<div class="cell"><div class="tx"><div class="tl">'+esc(j.nama)+"</div>"+
+        '<div class="sb">'+TIER[j.tier]+" \u00b7 "+BEBAN[j.tingkat_beban]+(j.aktif?"":" \u00b7 nonaktif")+"</div></div>"+
         '<button class="kecil" data-aksi="jenis-edit" data-v="'+j.id+'">Ubah</button></div>';}).join("")
-      :'<div class="kosong">Kosong.</div>')+"</fieldset>";
-  h+='<fieldset class="grp"><legend>Orang</legend>'+
-    '<div class="aksi" style="margin:0 0 6px"><button data-aksi="ang-baru">+ Tambah orang</button></div>'+
+      :'<div class="cell static"><div class="tx"><div class="sb">Kosong.</div></div></div>')+"</div>"+
+    '<div class="aksi" style="margin-top:10px"><button data-aksi="jenis-baru">+ Tambah kegiatan</button></div>';
+  h+='<div class="sect">Orang</div><div class="list">'+
     DB.anggota.map(function(a){
-      return '<div class="pilih"><span class="nm">'+esc(a.nama)+
-        ' <span class="meta">'+(a.kategori==="tu"?"TU":"tim")+(a.aktif?"":" \u00b7 nonaktif")+"</span></span>"+
+      return '<div class="cell"><div class="tx"><div class="tl">'+esc(a.nama)+"</div>"+
+        '<div class="sb">'+(a.kategori==="tu"?"TU":"Tim inti")+(a.aktif?"":" \u00b7 nonaktif")+"</div></div>"+
         '<button class="kecil" data-aksi="ang-edit" data-v="'+a.id+'">Ubah</button></div>';}).join("")+
-    "</fieldset>";
+    "</div>"+
+    '<div class="aksi" style="margin-top:10px"><button data-aksi="ang-baru">+ Tambah orang</button></div>';
   var c=[["nama_tim","Judul app","text"],["poin_dalam_kota","Poin dalam kota / hari","number"],
     ["poin_luar_pp","Poin luar kota PP / hari","number"],
     ["poin_luar_inap","Poin dasar luar kota nginep","number"],
     ["poin_per_malam","Tambahan per malam","number"],["faktor_ketua","Faktor beban ketua","number"]];
-  h+="<details><summary>Pengaturan skor &amp; PIN</summary>"+
-    c.map(function(x){return "<label>"+x[1]+'</label><input data-cfg="'+x[0]+'" type="'+x[2]+
-      '" step="0.1" value="'+esc(DB.config[x[0]]||"")+'">';}).join("")+
+  h+='<div class="sect">Pengaturan</div><div class="list"><details><summary class="frow"><span class="fl">Skor &amp; PIN</span></summary><div style="padding:2px 16px 14px">'+
+    c.map(function(x){return "<label>"+x[1]+'</label><input data-cfg="'+x[0]+'" type="'+x[2]+'" step="0.1" value="'+esc(DB.config[x[0]]||"")+'">';}).join("")+
     '<label>PIN baru (kosongkan kalau tak diubah)</label><input data-cfg="pin" type=text inputmode=numeric value="">'+
-    '<div class="aksi"><button data-aksi="simpan-cfg">Simpan pengaturan</button></div></details>';
+    '<div class="aksi"><button data-aksi="simpan-cfg">Simpan pengaturan</button></div></div></details></div>';
   return h;}
 
 /* ---------- modal ---------- */
-function gambarLapis(){
+function gambarLapis(keep){
   var el=$("#lapis");
   if(!MODAL&&!FORM){el.innerHTML="";return;}
+  var pv=keep?el.querySelector(".modal"):null, sc=pv?pv.scrollTop:0;
   var jud=FORM?(FORM.id?"Ubah catatan":"Catat kegiatan"):MODAL.judul;
   var isi=FORM?formCatat():MODAL.isi;
   var tombol=FORM?"batal":"tutup";
   el.innerHTML='<div class="tutup"><div class="out win modal">'+
+    '<div class="grip"></div>'+
     '<div class="tb"><span class="sp">'+esc(jud)+"</span>"+
-    '<button class="out tbtn" data-aksi="'+tombol+'">&times;</button></div>'+
-    '<div class="body">'+isi+"</div></div></div>";}
+    '<button class="iconbtn" data-aksi="'+tombol+'">&times;</button></div>'+
+    '<div class="body">'+isi+"</div></div></div>";
+  if(sc){var nw=el.querySelector(".modal"); if(nw) nw.scrollTop=sc;}}
 function bukaModal(j,i){MODAL={judul:j,isi:i};FORM=null;gambarLapis();}
 function tutupModal(){MODAL=null;gambarLapis();}
 
 function formCatat(){
   var f=FORM;
   var akt=DB.jenis.filter(function(j){return j.aktif||j.id===f.jenis_id;});
-  var h="<label>Kegiatan</label><select data-f=jenis_id>"+
-    '<option value="">\u2014 pilih \u2014</option>'+
-    akt.map(function(j){return '<option value="'+j.id+'"'+(f.jenis_id===j.id?" selected":"")+">"+
-      esc(j.nama)+"</option>";}).join("")+"</select>"+
-    "<label>Keterangan (opsional)</label>"+
-    '<input data-f=judul value="'+esc(f.judul)+'" placeholder="mis. wilayah Bogor">'+
-    '<div class="baris"><div><label>Tanggal (boleh kosong)</label>'+
-      '<input data-f=tanggal type=date value="'+(f.tanggal||"")+'"></div>'+
-      '<div><label>Jumlah hari</label>'+
-      '<input data-f=jumlah_hari type=number min=1 max=60 value="'+num(f.jumlah_hari,1)+'"></div></div>'+
-    "<label>Lokasi (opsional)</label>"+
-    '<input data-f=lokasi value="'+esc(f.lokasi)+'">';
-
-  h+="<details"+(f.ubahBobot?" open":"")+'><summary>Bobot: '+TIER[f.tier]+" \u00b7 "+
-    BEBAN[f.tingkat_beban]+" (skor jalan "+bulat(skorJalan(f))+")</summary>"+
-    "<label>Tier perjalanan</label><div class=seg>"+
-    Object.keys(TIER).map(function(t){
-      return '<button data-aksi="set-tier" data-v="'+t+'" class="'+(f.tier===t?"tekan":"")+'">'+
-        TIERP[t]+"</button>";}).join("")+"</div>"+
-    "<label>Tingkat beban</label><div class=seg>"+
-    [1,2,3].map(function(n){
-      return '<button data-aksi="set-beban" data-v="'+n+'" class="'+(f.tingkat_beban===n?"tekan":"")+'">'+
-        BEBAN[n]+"</button>";}).join("")+"</div></details>";
-
+  var h='<div class="sect">Kegiatan</div><div class="list">'+
+    '<div class="ffield"><label>Jenis</label><select data-f=jenis_id>'+
+      '<option value="">\u2014 pilih \u2014</option>'+
+      akt.map(function(j){return '<option value="'+j.id+'"'+(f.jenis_id===j.id?" selected":"")+">"+esc(j.nama)+"</option>";}).join("")+"</select></div>"+
+    '<div class="ffield"><label>Keterangan</label><input data-f=judul value="'+esc(f.judul)+'" placeholder="opsional, mis. wilayah Bogor"></div>'+
+    '<div class="ffield"><label>Lokasi</label><input data-f=lokasi value="'+esc(f.lokasi)+'" placeholder="opsional"></div>'+
+    "</div>";
+  h+='<div class="sect">Jadwal</div><div class="list">'+
+    '<div class="ffield"><label>Tanggal</label><input data-f=tanggal type=date value="'+(f.tanggal||"")+'"></div>'+
+    '<div class="ffield"><label>Jumlah hari</label><input data-f=jumlah_hari type=number min=1 max=60 value="'+num(f.jumlah_hari,1)+'"></div>'+
+    "</div>"+'<div class="note">Tanggal boleh kosong \u2014 catatan tanpa tanggal tetap dihitung.</div>';
+  h+='<div class="sect">Bobot</div><div class="list"><details'+(f.ubahBobot?" open":"")+">"+
+    '<summary class="frow"><span class="fl">Skor jalan</span><span class="ctlval">'+TIERP[f.tier]+" \u00b7 "+BEBAN[f.tingkat_beban]+" \u00b7 "+bulat(skorJalan(f))+"</span></summary>"+
+    '<div style="padding:2px 16px 14px">'+
+      '<div class="cap">Tier perjalanan</div><div class=seg>'+
+      Object.keys(TIER).map(function(t){return '<button data-aksi="set-tier" data-v="'+t+'" class="'+(f.tier===t?"tekan":"")+'">'+TIERP[t]+"</button>";}).join("")+"</div>"+
+      '<div class="cap" style="margin-top:12px">Tingkat beban</div><div class=seg>'+
+      [1,2,3].map(function(n){return '<button data-aksi="set-beban" data-v="'+n+'" class="'+(f.tingkat_beban===n?"tekan":"")+'">'+BEBAN[n]+"</button>";}).join("")+"</div>"+
+    "</div></details></div>";
   var r={}; rekap(0).forEach(function(x){r[x.id]=x;});
   var rj=null;
   if(f.jenis_id){rj={}; rekap(f.jenis_id).forEach(function(x){rj[x.id]=x;});}
-  var terpilih=Object.keys(f.orang).filter(function(k){return f.orang[k];})
-    .map(function(k){return parseInt(k,10);});
+  var terpilih=Object.keys(f.orang).filter(function(k){return f.orang[k];}).map(function(k){return parseInt(k,10);});
   ["tim","tu"].forEach(function(kat){
     var cal=DB.anggota.filter(function(a){return a.kategori===kat&&(a.aktif||f.orang[a.id]);});
     if(!cal.length) return;
     cal.sort(function(a,b){return (r[a.id]?r[a.id].jalan:0)-(r[b.id]?r[b.id].jalan:0);});
-    h+='<fieldset class="grp"><legend>'+(kat==="tim"?"Siapa yang jalan":"Anak TU")+"</legend>"+
+    h+='<div class="sect">'+(kat==="tim"?"Siapa yang jalan":"Anak TU")+'</div><div class="list">'+
       cal.map(function(a){
         var bt=bentrokPada(a.id,f.tanggal,num(f.jumlah_hari,1),f.id);
         var s=r[a.id];
-        return '<label class="pilih" style="font-weight:normal;margin:0">'+
-          '<input type=checkbox data-orang="'+a.id+'"'+(f.orang[a.id]?" checked":"")+">"+
-          '<span class="nm"><b>'+esc(a.nama)+"</b>"+
-            '<div class="meta">'+(s?s.n:0)+"\u00d7 jalan \u00b7 skor "+(s?bulat(s.jalan):0)+
+        return '<label class="cell chk"><input type=checkbox data-orang="'+a.id+'"'+(f.orang[a.id]?" checked":"")+">"+
+          '<span class="tx"><div class="tl">'+esc(a.nama)+"</div>"+
+            '<div class="sb">'+(s?s.n:0)+"\u00d7 jalan \u00b7 skor "+(s?bulat(s.jalan):0)+
               (rj?' \u00b7 <b>'+(rj[a.id]?rj[a.id].n:0)+"\u00d7 kegiatan ini</b>":"")+"</div>"+
-            (bt.length?'<span class="chip w">bentrok: '+esc(namaKeg(bt[0]))+"</span>":"")+
-          "</span></label>";}).join("")+"</fieldset>";});
-
-  h+="<label>Ketua tim (opsional)</label><select data-f=ketua_id>"+
-    '<option value="">\u2014 tidak ditentukan \u2014</option>'+
-    terpilih.map(function(id){var a=angg(id);
-      return a?'<option value="'+id+'"'+(f.ketua_id===id?" selected":"")+">"+esc(a.nama)+"</option>":"";}).join("")+
-    "</select>";
-  h+="<label>Catatan (opsional)</label><textarea data-f=catatan>"+esc(f.catatan)+"</textarea>";
-  h+='<div class="aksi"><button data-aksi="simpan-keg">Simpan</button>'+
-    '<button data-aksi="batal">Batal</button>'+
-    (f.id?'<button data-aksi="hapus-keg" data-v="'+f.id+'">Hapus</button>':"")+"</div>";
+            (bt.length?'<div class="sb"><span class="chip w">bentrok: '+esc(namaKeg(bt[0]))+"</span></div>":"")+
+          "</span></label>";}).join("")+"</div>";});
+  h+='<div class="sect">Ketua &amp; catatan</div><div class="list">'+
+    '<div class="ffield"><label>Ketua tim</label><select data-f=ketua_id>'+
+      '<option value="">\u2014 tidak ditentukan \u2014</option>'+
+      terpilih.map(function(id){var a=angg(id);
+        return a?'<option value="'+id+'"'+(f.ketua_id===id?" selected":"")+">"+esc(a.nama)+"</option>":"";}).join("")+"</select></div>"+
+    '<div class="ffield"><label>Catatan</label><textarea data-f=catatan placeholder="opsional">'+esc(f.catatan)+"</textarea></div>"+
+    "</div>";
+  h+='<div class="aksi" style="margin-top:20px"><button data-aksi="simpan-keg">Simpan</button>'+
+    (f.id?'<button data-aksi="hapus-keg" data-v="'+f.id+'">Hapus</button>':"")+
+    '<button data-aksi="batal">Batal</button></div>';
   return h;}
 
 function bukaForm(k){
@@ -478,21 +581,26 @@ function bacaForm(){
 function detailKegiatan(id){
   var k=cari(DB.kegiatan,id); if(!k) return;
   var o=orangDi(id), j=k.jenis_id?cari(DB.jenis,k.jenis_id):null;
-  var h='<div class="meta">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari</div>"+
-    "<p>"+(k.lokasi?"<b>Lokasi:</b> "+esc(k.lokasi)+"<br>":"")+
-    "<b>Tier:</b> "+TIER[k.tier]+" \u00b7 <b>beban:</b> "+BEBAN[k.tingkat_beban]+"<br>"+
-    "<b>Skor jalan:</b> "+bulat(skorJalan(k))+" per orang</p>"+
-    (k.catatan?"<p>"+esc(k.catatan).replace(/\n/g,"<br>")+"</p>":"")+
-    '<fieldset class="grp"><legend>Yang jalan ('+o.length+")</legend>"+
-    (o.length?o.map(function(a){
-      var kt=(k.ketua_id===a.id);
-      return '<div class="pilih"><span class="nm">'+esc(a.nama)+
-        ' <span class="meta">'+(kt?"ketua tim":a.kategori==="tu"?"TU":"anggota")+
-        " \u00b7 beban "+bulat(skorBeban(k,kt))+"</span></span></div>";}).join("")
-      :'<div class="kosong">Belum diisi.</div>')+"</fieldset>"+
-    '<div class="aksi"><button data-aksi="wa-keg" data-v="'+id+'">Salin ke WA</button>'+
+  var ket=o.filter(function(a){return k.ketua_id===a.id;});
+  var tim=o.filter(function(a){return k.ketua_id!==a.id&&a.kategori!=="tu";});
+  var tu=o.filter(function(a){return k.ketua_id!==a.id&&a.kategori==="tu";});
+  function grp(lbl,arr){ if(!arr.length) return "";
+    return '<div class="cell static"><div class="tx"><div class="cap" style="margin:0 0 3px">'+lbl+'</div>'+
+      '<div class="sb nm">'+arr.map(function(a){return esc(a.nama);}).join(", ")+"</div></div></div>";}
+  var h=(k.judul?'<div class="desc">'+esc(k.judul)+"</div>":"")+
+    '<div class="sub" style="margin:0 0 14px">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+(k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
+    '<div class="list">'+
+      '<div class="cell static"><div class="tx"><div class="tl">Tier</div></div><span class="val">'+TIER[k.tier]+"</span></div>"+
+      '<div class="cell static"><div class="tx"><div class="tl">Beban</div></div><span class="val">'+BEBAN[k.tingkat_beban]+"</span></div>"+
+      '<div class="cell static"><div class="tx"><div class="tl">Skor jalan</div><div class="sb">per orang</div></div><span class="val">'+bulat(skorJalan(k))+"</span></div>"+
+    "</div>"+
+    (k.catatan?'<div class="sect">Catatan</div><div class="list"><div class="cell static"><div class="tx"><div class="sb nm">'+esc(k.catatan).replace(/\n/g,"<br>")+"</div></div></div></div>":"")+
+    '<div class="sect">Yang jalan ('+o.length+')</div><div class="list">'+
+    (o.length?(grp("Ketua",ket)+grp("Anggota",tim)+grp("TU",tu))
+      :'<div class="cell static"><div class="tx"><div class="sb">Belum diisi.</div></div></div>')+"</div>"+
+    '<div class="aksi" style="margin-top:18px">'+
     (PIN?'<button data-aksi="edit-keg" data-v="'+id+'">Ubah</button>':"")+
-    '<button data-aksi="tutup">Tutup</button></div>';
+    '<button data-aksi="wa-keg" data-v="'+id+'">Salin ke WA</button></div>';
   bukaModal(j?j.nama:"Kegiatan",h);}
 
 function detailOrang(id){
@@ -502,21 +610,23 @@ function detailOrang(id){
     if(!x.k.tanggal) return -1; if(!y.k.tanggal) return 1;
     return x.k.tanggal<y.k.tanggal?1:-1;});
   var t=r?r.tier:{dalam_kota:0,luar_pp:0,luar_inap:0};
-  var h='<div class="meta">Filter: '+esc(labelFilter())+"</div>"+
-    "<p><b>"+(r?r.n:0)+" kali jalan</b>, total "+(r?r.hari:0)+" hari<br>"+
-    "Skor jalan "+bulat(r?r.jalan:0)+" \u00b7 skor beban "+bulat(r?r.beban:0)+"</p>"+
-    '<fieldset class="grp"><legend>Sebaran tujuan</legend>'+
-    '<table><tr><td>Dalam kota</td><td class="n"><b>'+t.dalam_kota+"\u00d7</b></td></tr>"+
-    '<tr><td>Luar kota PP</td><td class="n"><b>'+t.luar_pp+"\u00d7</b></td></tr>"+
-    '<tr><td>Luar kota nginep</td><td class="n"><b>'+t.luar_inap+"\u00d7</b></td></tr></table></fieldset>"+
-    '<fieldset class="grp"><legend>Riwayat</legend>'+
-    (d.length?d.map(function(x){
-      return '<div class="in kart" data-aksi="detail" data-v="'+x.k.id+'">'+
-        '<div class="jud">'+esc(namaKeg(x.k))+(x.ketua?" \u2605":"")+"</div>"+
-        '<div class="meta">'+tglTeks(x.k)+(x.k.lokasi?" \u00b7 "+esc(x.k.lokasi):"")+
-        " \u00b7 "+TIERP[x.k.tier]+"</div></div>";}).join("")
-      :'<div class="kosong">Belum ada.</div>')+"</fieldset>"+
-    '<div class="aksi"><button data-aksi="tutup">Tutup</button></div>';
+  var h='<div class="sub" style="margin:0 0 14px">'+esc(labelFilter())+"</div>"+
+    '<div class="stats">'+
+      '<div class="statc"><div class="v">'+(r?r.n:0)+'</div><div class="l">kali jalan</div></div>'+
+      '<div class="statc"><div class="v">'+(r?r.hari:0)+'</div><div class="l">hari</div></div>'+
+      '<div class="statc"><div class="v">'+bulat(r?r.jalan:0)+'</div><div class="l">skor jalan</div></div>'+
+      '<div class="statc"><div class="v">'+bulat(r?r.beban:0)+'</div><div class="l">skor beban</div></div>'+
+    "</div>"+
+    '<div class="sect">Sebaran tujuan</div><div class="list">'+
+      '<div class="cell static"><div class="tx"><div class="tl">Dalam kota</div></div><span class="val">'+t.dalam_kota+"\u00d7</span></div>"+
+      '<div class="cell static"><div class="tx"><div class="tl">Luar kota PP</div></div><span class="val">'+t.luar_pp+"\u00d7</span></div>"+
+      '<div class="cell static"><div class="tx"><div class="tl">Luar kota nginep</div></div><span class="val">'+t.luar_inap+"\u00d7</span></div>"+
+    "</div>"+
+    '<div class="sect">Riwayat</div>'+
+    (d.length?'<div class="list">'+d.map(function(x){
+      return '<div class="cell" data-aksi="detail" data-v="'+x.k.id+'"><div class="tx"><div class="tl">'+esc(namaKeg(x.k))+(x.ketua?' <span class="chip">ketua</span>':"")+
+        '</div><div class="sb">'+tglTeks(x.k)+(x.k.lokasi?" \u00b7 "+esc(x.k.lokasi):"")+" \u00b7 "+TIERP[x.k.tier]+'</div></div><span class="chev"></span></div>';}).join("")+"</div>"
+      :'<div class="kosong">Belum ada.</div>');
   bukaModal(a.nama,h);}
 
 /* ---------- salin / csv ---------- */
@@ -635,8 +745,8 @@ document.addEventListener("click",function(ev){
   if(a==="lihat"){detailOrang(parseInt(v,10));return;}
   if(a==="baru"){bukaForm(null);return;}
   if(a==="edit-keg"){var k=cari(DB.kegiatan,parseInt(v,10)); if(k) bukaForm(k); return;}
-  if(a==="set-tier"){bacaForm();FORM.tier=v;FORM.ubahBobot=true;gambarLapis();return;}
-  if(a==="set-beban"){bacaForm();FORM.tingkat_beban=parseInt(v,10);FORM.ubahBobot=true;gambarLapis();return;}
+  if(a==="set-tier"){bacaForm();FORM.tier=v;FORM.ubahBobot=true;gambarLapis(true);return;}
+  if(a==="set-beban"){bacaForm();FORM.tingkat_beban=parseInt(v,10);FORM.ubahBobot=true;gambarLapis(true);return;}
   if(a==="simpan-keg"){simpanKegiatan();return;}
   if(a==="hapus-keg"){
     if(!confirm("Hapus catatan ini?")) return;
@@ -709,7 +819,7 @@ document.addEventListener("change",function(ev){
     if(k==="jenis_id"&&FORM&&FORM.jenis_id&&!FORM.id){
       var j=cari(DB.jenis,FORM.jenis_id);
       if(j){FORM.tier=j.tier;FORM.tingkat_beban=j.tingkat_beban;}}
-    gambarLapis(); return;}
+    gambarLapis(true); return;}
   if(el.getAttribute("data-aksi")==="ptahun"){
     PERIODE.tahun=parseInt(el.value,10)||0; render(); return;}
   if(el.getAttribute("data-aksi")==="pjenis"){
