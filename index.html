@@ -340,9 +340,9 @@ function viewOrang(){
     var rows=r.filter(function(x){return x.kategori===kat&&(x.aktif||x.n>0);});
     if(!rows.length) return;
     rows.sort(function(a,b){
-      if(URUT==="beban") return b.beban-a.beban;   // beban terbesar di atas
-      if(URUT==="kali")  return b.n-a.n;            // paling sering di atas
-      return a.jalan-b.jalan;});                     // jalan: rezeki terkecil di atas
+      if(URUT==="beban") return b.beban-a.beban;
+      if(URUT==="kali")  return b.n-a.n;
+      return b.jalan-a.jalan;});   // semua descending: yang terbesar di atas
     var pakai=rows.filter(function(x){return x.n>0;});
     var aJ=pakai.length?pakai.reduce(function(s,x){return s+x.jalan;},0)/pakai.length:0;
     var aB=pakai.length?pakai.reduce(function(s,x){return s+x.beban;},0)/pakai.length:0;
@@ -366,7 +366,7 @@ function viewOrang(){
         (PERIODE.jenis?"Kolom <b>Kali</b> = berapa kali ikut kegiatan ini. ":"")+
         (URUT==="beban"?"Urut dari beban terbesar.":
          URUT==="kali"?"Urut dari paling sering jalan (Kali) terbanyak.":
-         "Urut dari skor jalan (rezeki) terkecil.")+
+         "Urut dari skor jalan (rezeki) terbesar.")+
         " Angka di bawah Kali: dalam kota · luar PP · nginep. Ketuk nama untuk riwayat.</div>"+
       "</fieldset>";});
   return h||'<div class="kosong">Belum ada anggota.</div>';}

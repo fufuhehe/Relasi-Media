@@ -453,7 +453,7 @@ function viewOrang(){
     rows.sort(function(a,b){
       if(URUT==="beban") return b.beban-a.beban;
       if(URUT==="kali")  return b.n-a.n;
-      return a.jalan-b.jalan;});
+      return b.jalan-a.jalan;});   // semua descending
     var pakai=rows.filter(function(x){return x.n>0;});
     var aJ=pakai.length?pakai.reduce(function(s,x){return s+x.jalan;},0)/pakai.length:0;
     var aB=pakai.length?pakai.reduce(function(s,x){return s+x.beban;},0)/pakai.length:0;
@@ -475,7 +475,7 @@ function viewOrang(){
         (PERIODE.jenis?"Kali = berapa kali ikut kegiatan ini. ":"")+
         (URUT==="beban"?"Urut dari beban terbesar.":
          URUT==="kali"?"Urut dari paling sering jalan terbanyak.":
-         "Urut dari skor jalan (rezeki) terkecil.")+
+         "Urut dari skor jalan (rezeki) terbesar.")+
         " Ketuk untuk riwayat.</div>";});
   return h||'<div class="kosong">Belum ada anggota.</div>';}
 
