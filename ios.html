@@ -233,6 +233,7 @@ var DB={anggota:[],jenis:[],kegiatan:[],penugasan:[],config:{}};
 var TAB="catat", PIN=null, FORM=null, MODAL=null;
 var PERIODE={tahun:new Date().getFullYear(),jenis:0};
 var CATAT_JENIS=0;
+var URUT="jalan";   // urutan tab Orang: "jalan" | "beban" | "kali"
 
 var TIER={dalam_kota:"Dalam kota",luar_pp:"Luar kota PP",luar_inap:"Luar kota nginep"};
 var TIERP={dalam_kota:"Dlm kota",luar_pp:"Luar PP",luar_inap:"Luar nginep"};
@@ -413,6 +414,24 @@ function viewCatat(){
              '<button data-aksi="csv">Export CSV</button></div>';
   return h;}
 
+function caraHitung(){
+  var pk=cfg("poin_dalam_kota",1), pp=cfg("poin_luar_pp",2.5), pi=cfg("poin_luar_inap",3),
+      pm=cfg("poin_per_malam",2), fk=cfg("faktor_ketua",1.2);
+  return '<p>Ada <b>dua skor terpisah</b>, sengaja tidak digabung — biar keliatan siapa yang rezekinya kecil tapi bebannya berat.</p>'+
+    '<fieldset class="grp"><legend>Skor jalan (proxy rezeki)</legend>'+
+      '<div class="meta">Sama untuk semua peserta satu kegiatan. Makin sering &amp; makin jauh, makin gede.</div>'+
+      "<table><tr><td>Dalam kota</td><td class=n>"+pk+" × hari</td></tr>"+
+      "<tr><td>Luar kota PP</td><td class=n>"+pp+" × hari</td></tr>"+
+      "<tr><td>Luar kota nginap</td><td class=n>"+pi+" + "+pm+" × (hari−1)</td></tr></table></fieldset>"+
+    '<fieldset class="grp"><legend>Skor beban (proxy capek)</legend>'+
+      "<p><b>hari kerja × tingkat beban × faktor peran</b></p>"+
+      '<div class="meta">• Hari kerja = jumlah hari. Khusus <b>nginap</b> dikurangi 2 (hari pergi &amp; pulang dianggap perjalanan, bukan kerja).<br>'+
+      "• Tingkat beban: Ringan=1, Sedang=2, Berat=3.<br>"+
+      "• Faktor peran: ketua ×"+fk+", anggota ×1.</div></fieldset>"+
+    '<fieldset class="grp"><legend>Soal urutan</legend>'+
+      '<div class="meta">Daftar diurut dari <b>skor yang dipilih</b> (Jalan / Beban / Kali), <b>bukan</b> dari berapa kali jalan. Sering jalan belum tentu rezeki gede — tergantung tujuannya (nginap poinnya paling besar).</div></fieldset>'+
+    '<div class="aksi"><button data-aksi="tutup">Tutup</button></div>';}
+
 function viewOrang(){
   var r=rekap(), h="";
   var thn=[], y=new Date().getFullYear();
@@ -422,10 +441,19 @@ function viewOrang(){
     thn.map(function(t){return '<option value="'+t+'"'+(PERIODE.tahun===t?" selected":"")+">"+t+"</option>";}).join("")+"</select>"+
     '<select data-aksi="pjenis"><option value="0">Semua kegiatan</option>'+
     DB.jenis.map(function(j){return '<option value="'+j.id+'"'+(PERIODE.jenis===j.id?" selected":"")+">"+esc(j.nama)+"</option>";}).join("")+"</select></div>";
+  h+='<div class="filters" style="margin-top:8px">'+
+    '<div class="seg" style="flex:3">'+
+    [["jalan","Jalan"],["beban","Beban"],["kali","Kali"]].map(function(p){
+      return '<button data-aksi="urut" data-v="'+p[0]+'" class="'+(URUT===p[0]?"tekan":"")+'">'+p[1]+"</button>";}).join("")+
+    "</div>"+
+    '<button class="kecil" data-aksi="cara-hitung" style="flex:1;min-width:96px">Cara hitung</button></div>';
   ["tim","tu"].forEach(function(kat){
     var rows=r.filter(function(x){return x.kategori===kat&&(x.aktif||x.n>0);});
     if(!rows.length) return;
-    rows.sort(function(a,b){return a.jalan-b.jalan;});
+    rows.sort(function(a,b){
+      if(URUT==="beban") return b.beban-a.beban;
+      if(URUT==="kali")  return b.n-a.n;
+      return a.jalan-b.jalan;});
     var pakai=rows.filter(function(x){return x.n>0;});
     var aJ=pakai.length?pakai.reduce(function(s,x){return s+x.jalan;},0)/pakai.length:0;
     var aB=pakai.length?pakai.reduce(function(s,x){return s+x.beban;},0)/pakai.length:0;
@@ -443,7 +471,11 @@ function viewOrang(){
           '<div class="meta comp">'+x.tier.dalam_kota+" · "+x.tier.luar_pp+" · "+x.tier.luar_inap+
             ' <span style="opacity:.7">dlm kota · luar PP · nginep</span></div>'+
         "</div>";}).join("")+"</div>"+
-      '<div class="note">'+(PERIODE.jenis?"Kali = berapa kali ikut kegiatan ini.":"Urut dari skor jalan (rezeki) terkecil.")+
+      '<div class="note">'+
+        (PERIODE.jenis?"Kali = berapa kali ikut kegiatan ini. ":"")+
+        (URUT==="beban"?"Urut dari beban terbesar.":
+         URUT==="kali"?"Urut dari paling sering jalan terbanyak.":
+         "Urut dari skor jalan (rezeki) terkecil.")+
         " Ketuk untuk riwayat.</div>";});
   return h||'<div class="kosong">Belum ada anggota.</div>';}
 
@@ -743,6 +775,8 @@ document.addEventListener("click",function(ev){
   if(a==="batal"){FORM=null;gambarLapis();return;}
   if(a==="detail"){detailKegiatan(parseInt(v,10));return;}
   if(a==="lihat"){detailOrang(parseInt(v,10));return;}
+  if(a==="urut"){URUT=v;render();return;}
+  if(a==="cara-hitung"){bukaModal("Cara hitung skor",caraHitung());return;}
   if(a==="baru"){bukaForm(null);return;}
   if(a==="edit-keg"){var k=cari(DB.kegiatan,parseInt(v,10)); if(k) bukaForm(k); return;}
   if(a==="set-tier"){bacaForm();FORM.tier=v;FORM.ubahBobot=true;gambarLapis(true);return;}
