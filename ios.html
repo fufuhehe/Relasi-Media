@@ -417,8 +417,8 @@ function viewCatat(){
 function caraHitung(){
   var pk=cfg("poin_dalam_kota",1), pp=cfg("poin_luar_pp",2.5), pi=cfg("poin_luar_inap",3),
       pm=cfg("poin_per_malam",2), fk=cfg("faktor_ketua",1.2);
-  return '<p>Ada <b>dua skor terpisah</b>, sengaja tidak digabung — biar keliatan siapa yang rezekinya kecil tapi bebannya berat.</p>'+
-    '<fieldset class="grp"><legend>Skor jalan (proxy rezeki)</legend>'+
+  return '<p>Ada <b>dua skor terpisah</b>, sengaja tidak digabung — biar keliatan siapa yang kluntingnya kecil tapi bebannya berat.</p>'+
+    '<fieldset class="grp"><legend>Skor jalan (proxy klunting)</legend>'+
       '<div class="meta">Sama untuk semua peserta satu kegiatan. Makin sering &amp; makin jauh, makin gede.</div>'+
       "<table><tr><td>Dalam kota</td><td class=n>"+pk+" × hari</td></tr>"+
       "<tr><td>Luar kota PP</td><td class=n>"+pp+" × hari</td></tr>"+
@@ -429,7 +429,7 @@ function caraHitung(){
       "• Tingkat beban: Ringan=1, Sedang=2, Berat=3.<br>"+
       "• Faktor peran: ketua ×"+fk+", anggota ×1.</div></fieldset>"+
     '<fieldset class="grp"><legend>Soal urutan</legend>'+
-      '<div class="meta">Daftar diurut dari <b>skor yang dipilih</b> (Jalan / Beban / Kali), <b>bukan</b> dari berapa kali jalan. Sering jalan belum tentu rezeki gede — tergantung tujuannya (nginap poinnya paling besar).</div></fieldset>'+
+      '<div class="meta">Daftar diurut dari <b>skor yang dipilih</b> (Jalan / Beban / Kali), <b>bukan</b> dari berapa kali jalan. Sering jalan belum tentu klunting gede — tergantung tujuannya (nginap poinnya paling besar).</div></fieldset>'+
     '<div class="aksi"><button data-aksi="tutup">Tutup</button></div>';}
 
 function viewOrang(){
@@ -462,7 +462,7 @@ function viewOrang(){
       rows.map(function(x){
         var flag=(!PERIODE.jenis&&pakai.length>1&&x.beban>aB*1.1&&x.jalan<aJ*0.9);   // margin 10%: cuma nangkep yang beneran timpang
         return '<div class="cell prow" data-aksi="lihat" data-v="'+x.id+'">'+
-          '<div class="prow-top"><b>'+esc(x.nama)+"</b>"+(flag?' <span class="chip w">rezeki ngepas, beban tinggi</span>':"")+
+          '<div class="prow-top"><b>'+esc(x.nama)+"</b>"+(flag?' <span class="chip w">klunting ngepas, beban tinggi</span>':"")+
             '<span class="kali">'+x.n+'×</span></div>'+
           '<div class="prow-bars">'+
             '<div class="mb"><span class="mbl">Jalan</span><div class="mini"><i class="a" style="width:'+(x.jalan/mJ*100).toFixed(0)+'%"></i></div><span class="mbv">'+bulat(x.jalan)+"</span></div>"+
@@ -475,7 +475,7 @@ function viewOrang(){
         (PERIODE.jenis?"Kali = berapa kali ikut kegiatan ini. ":"")+
         (URUT==="beban"?"Urut dari beban terbesar.":
          URUT==="kali"?"Urut dari paling sering jalan terbanyak.":
-         "Urut dari skor jalan (rezeki) terbesar.")+
+         "Urut dari skor jalan (klunting) terbesar.")+
         " Ketuk untuk riwayat.</div>";});
   return h||'<div class="kosong">Belum ada anggota.</div>';}
 

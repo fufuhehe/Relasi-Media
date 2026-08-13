@@ -93,10 +93,10 @@ Aturan yang gampang terlanggar saat menambah fitur:
    `10.799999999999999`. Kalau menambah tampilan angka baru, jangan lupa.
 4. `rekap(fj)`: `undefined` = ikut `PERIODE.jenis`, `0` = paksa semua jenis (dipakai form
    catat untuk angka total), angka lain = jenis tertentu.
-5. Flag "rezeki ngepas, beban tinggi" (dulu "jarang jalan…") **dimatikan saat filter jenis
+5. Flag "klunting ngepas, beban tinggi" (dulu "jarang jalan…") **dimatikan saat filter jenis
    aktif**, dan cuma nyala kalau `beban > rata-rata×1.1` DAN `jalan < rata-rata×0.9` (margin
-   10% biar yang pas di rata-rata tidak ke-trigger). Ingat: skor jalan = proxy rezeki, BUKAN
-   frekuensi jalan. Margin & label ini ada di `index.html` dan `ios.html`.
+   10% biar yang pas di rata-rata tidak ke-trigger). Ingat: skor jalan = proxy rezeki (di UI
+   ditulis **"klunting"**), BUKAN frekuensi jalan. Margin & label ini ada di `index.html` dan `ios.html`.
 
 ---
 
