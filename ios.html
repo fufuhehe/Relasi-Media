@@ -173,7 +173,8 @@ details>summary.frow{padding:13px 16px}
 .kthumb.kosong{box-shadow:inset 0 0 0 1px var(--sep);background:transparent}
 .lbh{color:var(--textdim);opacity:.65}
 .satu{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cips{margin-top:3px;display:flex;gap:4px;flex-wrap:wrap}
+.klink{float:right;width:16px;height:16px;margin:2px 0 2px 8px;color:var(--textdim)}
+.klink svg{width:100%;height:100%;display:block}
 details.adm{margin:0 0 4px}
 details.adm>summary{cursor:pointer;list-style:none}
 details.adm>summary::-webkit-details-marker{display:none}
@@ -266,6 +267,7 @@ var HDR={apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"applicatio
 
 var DB={anggota:[],jenis:[],kegiatan:[],penugasan:[],foto:[],config:{}};
 var FOTO_URL={};
+var IKON_LINK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10 13.6a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 1 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.4a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 1 0 5.7 5.7l1.6-1.6"/></svg>';
 var BULAN_BUKA=null;
 var ADMIN_BUKA={};
 var MODAL_KEG=null;
@@ -678,17 +680,14 @@ function viewCatat(){
     return a.dibuat<b.dibuat?1:-1;});
   function cell(k){
     var f=fotoDi(k.id), nf=f.length, nd=PIN?dokDi(k.id).length:0;
-    var cip="";
-    if(nf>1) cip+='<span class="chip">'+nf+" foto</span>";
-    if(nd)   cip+='<span class="chip">link</span>';
     return '<div class="cell" data-aksi="detail" data-v="'+k.id+'">'+
       (nf?'<img class="kthumb" data-fpath="'+esc(f[0].path)+'" alt="">'
          :'<span class="kthumb kosong" title="belum ada foto"></span>')+
       '<div class="tx">'+
+      (nd?'<span class="klink" title="'+nd+' dokumen">'+IKON_LINK+"</span>":"")+
       '<div class="tl">'+esc(namaKeg(k))+"</div>"+
       '<div class="sb">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+(k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
       '<div class="sb nm">'+namaRingkas(k)+"</div>"+
-      (cip?'<div class="cips">'+cip+"</div>":"")+
       "</div><span class=\"chev\"></span></div>";}
   if(tanpa.length)
     h+='<details style="margin-top:6px"><summary class="sect" style="margin:20px 6px 7px">Belum bertanggal ('+tanpa.length+')</summary>'+

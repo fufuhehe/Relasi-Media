@@ -214,10 +214,13 @@ Target sekitar 6-7 kartu per layar HP, rapat tapi masih nyaman diketuk. Aturan y
 - Nama dipotong lewat `namaRingkas(k,maks)`: 4 nama (ketua selalu didahulukan dan ditandai
   `*`), sisanya jadi `+N lagi` dengan class `lbh` yang redup. Daftar 12 nama sebelumnya makan
   3 baris. Nama lengkap tetap ada di layar detail.
-- **Semua chip dalam SATU pembungkus `.cips`**, jangan satu `<div>` per chip. Bug ini pernah
-  terjadi: di `ios.html` tiap chip dibungkus `<div class="sb">` sehingga "2 foto" dan "link"
-  bertumpuk ke bawah, sementara di `index.html` sudah sebaris. Ada tes khusus untuk ini.
-- Kalau tidak ada chip sama sekali, baris `.cips` tidak dirender — jangan sisakan baris kosong.
+- **Kartu daftar tidak punya baris chip sama sekali.** Chip "N foto" dibuang karena
+  thumbnail sudah menandakan adanya foto; jumlah persisnya ada di layar detail. Chip teks
+  "link" diganti ikon rantai (`IKON_LINK`, SVG inline, class `klink`, `float:right` di dalam
+  blok teks) di pojok kanan atas kartu, hanya untuk admin. Jangan kembalikan baris chip —
+  itu satu baris penuh di setiap kartu untuk informasi yang sudah terwakili.
+- Ikon memakai `float:right` dan ditaruh SEBELUM judul, bukan `position:absolute`. Di varian
+  Modern ada chevron di kanan yang vertikal di tengah; absolut akan bertabrakan dengannya.
 - URL dokumen ditampilkan lewat `ringkasUrl()` dan dikunci satu baris (class `satu`).
   Jangan pernah `word-break:break-all` pada URL — link Drive panjang dan akan membungkus
   dua-tiga baris. `href` tetap memakai URL asli yang utuh.
