@@ -640,7 +640,7 @@ function render(){
   var nm=DB.config.nama_tim||"Catatan Kegiatan Tim";
   $("#judul").textContent=nm; document.title=nm;
   $("#ringkas").innerHTML=ringkasHTML();
-  var t=[["catat","Kegiatan"],["orang","Orang"],["admin","Admin"]];
+  var t=[["catat","Kegiatan"],["orang","Pemerataan"],["admin","Admin"]];
   $("#tabs").innerHTML=t.map(function(x){
     return '<button class="'+(TAB===x[0]?"on":"")+'" data-aksi="tab" data-v="'+x[0]+'">'+ICO[x[0]]+
       "<span>"+x[1]+(x[0]==="admin"&&PIN?" \u2713":"")+"</span></button>";}).join("");
