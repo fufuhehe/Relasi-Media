@@ -106,6 +106,10 @@ Isi dokumen memang dijaga Google Drive, tapi JUDUL surat dinas pun metadata sens
 pernah memindahkan link ini jadi kolom di `keg_kegiatan` — tabel itu kebaca anon.
 
 Di app: `DOKUMEN` dimuat oleh `muatDokumen()` saat login/`muat()` dan dikosongkan saat logout.
+**JANGAN `return muatDokumen()` di tengah `muat()`** — itu melewati `stat()` dan `render()`
+sehingga app nyangkut di "Memuat…" bagi siapa pun yang PIN-nya tersimpan. Rantai dengan
+`.then()` supaya render selalu jalan. Ada tes khusus (`muat()` wajib memanggil render di mode
+lihat, mode admin, dan saat fungsi dokumen error).
 `dokHTML()` mengembalikan string kosong kalau `PIN` null. Penanda "link" di daftar juga hanya
 muncul saat admin. URL divalidasi dua lapis: `^https://` di fungsi SQL saat simpan, dan
 `urlAman()` di frontend saat render — yang bukan https ditampilkan sebagai teks, bukan `<a>`,

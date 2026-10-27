@@ -248,10 +248,10 @@ function muat(){
     DB.anggota=r[0]; DB.jenis=r[1]; DB.kegiatan=r[2]; DB.penugasan=r[3];
     DB.config={}; r[4].forEach(function(c){DB.config[c.kunci]=c.nilai;});
     DB.foto=r[5]||[];
-    if(PIN) return muatDokumen();
-    DOKUMEN=[];
-    stat(DB.kegiatan.length+" catatan kegiatan");
-    render();
+    if(!PIN) DOKUMEN=[];
+    return (PIN?muatDokumen():Promise.resolve()).then(function(){
+      stat(DB.kegiatan.length+" catatan kegiatan");
+      render();});
   }).catch(function(e){
     stat("Error: "+e.message);
     $("#isi").innerHTML='<div class="kosong">Gagal memuat.<br>'+esc(e.message)+"</div>";});}
