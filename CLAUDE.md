@@ -129,6 +129,12 @@ Daftar dikelompokkan per bulan sebagai `<details>` yang bisa dilipat. Bulan terb
 secara bawaan; status buka/tutup disimpan di `BULAN_BUKA` (memori, bukan localStorage) supaya
 tidak hilang saat render ulang — listener dipasang oleh `pasangBulan()` tiap render.
 
+Panel admin juga dilipat per bagian lewat helper `adm(kunci,judul,isi,jml)`, dengan status di
+`ADMIN_BUKA` dan listener di `pasangBulan()` yang sama (dia menangani `data-bln` dan
+`data-adm`). Semua bagian tertutup secara bawaan, jumlah isinya ditulis di judul. Kalau
+menambah bagian admin baru, pakai `adm()` — jangan kembali menulis `<fieldset>`/`<div
+class="sect">` telanjang, nanti satu bagian tidak ikut terlipat.
+
 ---
 
 ## Logika inti — jangan diubah tanpa diminta
@@ -182,6 +188,9 @@ Aturan yang gampang terlanggar saat menambah fitur:
 
 ## Estetika
 
+Di UI dua varian ini disebut **Jadul** (`index.html`) dan **Modern** (`ios.html`), bukan
+nama sistem operasinya.
+
 **Default sekarang balik ke retro Windows 98** (`index.html`): bevel border, abu `#c0c0c0`,
 title bar navy, font MS Sans Serif, dark mode "High Contrast Black". Semua warna lewat CSS
 variable di `:root`.
@@ -194,8 +203,9 @@ Dua-duanya skin di atas layout mobile-first, bukan simulasi desktop. Jangan biki
 bisa digeser atau taskbar — dia buka ini dari HP.
 
 ### Pemilih tampilan
-Panel admin punya kontrol Windows 98 / iOS. Pilihannya disimpan di `localStorage.keg_tampilan`
-(`"win"` | `"ios"`) per perangkat, lalu halaman pindah ke file pasangannya.
+Panel admin punya kontrol **Jadul / Modern**. Itu label di UI; nilai yang disimpan tetap
+`"win"` / `"ios"` di `localStorage.keg_tampilan` (per perangkat) supaya tidak perlu migrasi.
+Jangan samakan label dengan nilainya. Halaman lalu pindah ke file pasangannya.
 
 Pengalihnya ada di **blok `<script>` tersendiri di dalam `<head>`** supaya jalan sebelum apa pun
 digambar (kalau ditaruh di skrip utama, tampilan lama sempat berkedip). Tiap file menyimpan

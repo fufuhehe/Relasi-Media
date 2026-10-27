@@ -170,6 +170,13 @@ details>summary.frow{padding:13px 16px}
 /* foto */
 .kthumb{width:52px;height:52px;flex:none;object-fit:cover;display:block;
   background:var(--field);border-radius:10px;margin-right:12px}
+details.adm{margin:0 0 4px}
+details.adm>summary{cursor:pointer;list-style:none}
+details.adm>summary::-webkit-details-marker{display:none}
+details.adm>summary:after{content:" \203A";display:inline-block;transform:rotate(90deg);
+  margin-left:4px;opacity:.5}
+details.adm[open]>summary:after{transform:rotate(-90deg)}
+.admisi{padding-bottom:6px}
 .fotos{display:flex;flex-wrap:wrap;gap:8px;padding:12px}
 .fotobox{position:relative;width:92px;height:92px}
 .fotobox img{width:100%;height:100%;object-fit:cover;display:block;
@@ -256,6 +263,7 @@ var HDR={apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"applicatio
 var DB={anggota:[],jenis:[],kegiatan:[],penugasan:[],foto:[],config:{}};
 var FOTO_URL={};
 var BULAN_BUKA=null;
+var ADMIN_BUKA={};
 var MODAL_KEG=null;
 var DOKUMEN=[];
 var TAB="catat", PIN=null, FORM=null, MODAL=null;
@@ -621,8 +629,12 @@ function pasangBulan(){
       BULAN_BUKA[el.getAttribute("data-bln")]=el.open;
       if(el.open) pasangFoto();
     });
-  })(d[i]);}
-
+  })(d[i]);
+  var a=document.querySelectorAll("details[data-adm]");
+  for(var k=0;k<a.length;k++)(function(el){
+    el.addEventListener("toggle",function(){
+      ADMIN_BUKA[el.getAttribute("data-adm")]=el.open;});
+  })(a[k]);}
 
 function viewCatat(){
   var h="";
@@ -741,11 +753,11 @@ function viewAdmin(){
     '<div class="aksi" style="margin-top:14px"><button data-aksi="login">Masuk</button></div>'+
     '<div class="note">PIN awal 1234 \u2014 ganti setelah masuk.</div>';
   var h='<div style="margin:6px 0 2px"><button data-aksi="logout" style="width:100%">Keluar admin</button></div>';
-  h+='<div class="sect">Tampilan</div><div class="seg" style="margin:0 6px">'+
-    '<button data-aksi="tampilan" data-v="win">Windows 98</button>'+
-    '<button data-aksi="tampilan" data-v="ios" class="tekan">iOS</button></div>'+
-    '<div class="note" style="margin:7px 6px 0">Pilihan disimpan di perangkat ini saja.</div>';
-  h+='<div class="sect">Daftar kegiatan</div>'+
+  h+=adm("tampilan","Tampilan",'<div class="seg" style="margin:0 6px">'+
+    '<button data-aksi="tampilan" data-v="win">Jadul</button>'+
+    '<button data-aksi="tampilan" data-v="ios" class="tekan">Modern</button></div>'+
+    '<div class="note" style="margin:7px 6px 0">Pilihan disimpan di perangkat ini saja.</div>');
+  h+=adm("jenis","Daftar kegiatan",
     '<div class="note" style="margin:0 6px 7px">Bobot nempel di sini, jadi pas nyatat tinggal pilih.</div>'+
     '<div class="list">'+
     (DB.jenis.length?DB.jenis.map(function(j){
@@ -753,23 +765,29 @@ function viewAdmin(){
         '<div class="sb">'+TIER[j.tier]+" \u00b7 "+BEBAN[j.tingkat_beban]+(j.aktif?"":" \u00b7 nonaktif")+"</div></div>"+
         '<button class="kecil" data-aksi="jenis-edit" data-v="'+j.id+'">Ubah</button></div>';}).join("")
       :'<div class="cell static"><div class="tx"><div class="sb">Kosong.</div></div></div>')+"</div>"+
-    '<div class="aksi" style="margin-top:10px"><button data-aksi="jenis-baru">+ Tambah kegiatan</button></div>';
-  h+='<div class="sect">Orang</div><div class="list">'+
+    '<div class="aksi" style="margin-top:10px"><button data-aksi="jenis-baru">+ Tambah kegiatan</button></div>',
+    DB.jenis.length);
+  h+=adm("orang","Orang",'<div class="list">'+
     DB.anggota.map(function(a){
       return '<div class="cell"><div class="tx"><div class="tl">'+esc(a.nama)+"</div>"+
         '<div class="sb">'+(a.kategori==="tu"?"TU":"Tim inti")+(a.aktif?"":" \u00b7 nonaktif")+"</div></div>"+
         '<button class="kecil" data-aksi="ang-edit" data-v="'+a.id+'">Ubah</button></div>';}).join("")+
     "</div>"+
-    '<div class="aksi" style="margin-top:10px"><button data-aksi="ang-baru">+ Tambah orang</button></div>';
+    '<div class="aksi" style="margin-top:10px"><button data-aksi="ang-baru">+ Tambah orang</button></div>',
+    DB.anggota.length);
   var c=[["nama_tim","Judul app","text"],["poin_dalam_kota","Poin dalam kota / hari","number"],
     ["poin_luar_pp","Poin luar kota PP / hari","number"],
     ["poin_luar_inap","Poin dasar luar kota nginep","number"],
     ["poin_per_malam","Tambahan per malam","number"],["faktor_ketua","Faktor beban ketua","number"]];
-  h+='<div class="sect">Pengaturan</div><div class="list"><details><summary class="frow"><span class="fl">Skor &amp; PIN</span></summary><div style="padding:2px 16px 14px">'+
+  h+=adm("skor","Pengaturan skor &amp; PIN",'<div style="padding:2px 6px 4px">'+
     c.map(function(x){return "<label>"+x[1]+'</label><input data-cfg="'+x[0]+'" type="'+x[2]+'" step="0.1" value="'+esc(DB.config[x[0]]||"")+'">';}).join("")+
     '<label>PIN baru (kosongkan kalau tak diubah)</label><input data-cfg="pin" type=text inputmode=numeric value="">'+
-    '<div class="aksi"><button data-aksi="simpan-cfg">Simpan pengaturan</button></div></div></details></div>';
+    '<div class="aksi"><button data-aksi="simpan-cfg">Simpan pengaturan</button></div></div>');
   return h;}
+function adm(kunci,judul,isi,jml){
+  return '<details class="adm" data-adm="'+kunci+'"'+(ADMIN_BUKA[kunci]?" open":"")+">"+
+    '<summary class="sect">'+judul+(jml?" ("+jml+")":"")+"</summary>"+
+    '<div class="admisi">'+isi+"</div></details>";}
 
 /* ---------- modal ---------- */
 function gambarLapis(keep){
