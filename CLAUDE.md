@@ -236,6 +236,10 @@ Target sekitar 6-7 kartu per layar HP, rapat tapi masih nyaman diketuk. Aturan y
 - URL dokumen ditampilkan lewat `ringkasUrl()` dan dikunci satu baris (class `satu`).
   Jangan pernah `word-break:break-all` pada URL — link Drive panjang dan akan membungkus
   dua-tiga baris. `href` tetap memakai URL asli yang utuh.
+- **`<fieldset class="grp">` WAJIB punya `min-width:0`.** Fieldset tidak mau menyusut di
+  bawah lebar isinya walaupun anaknya sudah `min-width:0` — ini perilaku khusus elemen itu,
+  bukan bug flexbox. Tanpa aturan ini, satu baris `white-space:nowrap` (URL dokumen) melebarkan
+  fieldset sampai keluar modal dan tombol di kanan terpotong. Pernah kejadian.
 - Layar detail varian Modern menaruh tier, beban, dan skor jalan dalam SATU baris ringkas,
   bukan tiga baris `.cell` terpisah — supaya kerapatannya setara varian Jadul.
 
