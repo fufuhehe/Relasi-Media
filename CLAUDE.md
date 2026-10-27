@@ -45,7 +45,7 @@ jangan jadi field wajib.**
 
 | Item | Detail |
 |---|---|
-| Frontend | `index.html` = desain **Windows 98** (default). `ios.html` = varian **iOS modern** (fallback). Dua-duanya vanilla, tanpa framework/build, **logika identik**. Tag git `win98` menandai versi retro awal. |
+| Frontend | `index.html` = desain **Windows 98** (default). `ios.html` = varian **iOS modern**. Dua-duanya vanilla, tanpa framework/build, **logika identik**. Bisa dipilih dari panel admin. Tag git `win98` menandai versi retro awal. |
 | Hosting | GitHub Pages dari branch `main`, root. Semua path relatif `./` |
 | Backend | Supabase project `wwgqgsjyaodxfuhjwksj` (numpang project ODOP), prefix tabel `keg_` |
 | Biaya | Rp 0/bulan |
@@ -192,6 +192,27 @@ bottom-sheet.
 
 Dua-duanya skin di atas layout mobile-first, bukan simulasi desktop. Jangan bikin window yang
 bisa digeser atau taskbar — dia buka ini dari HP.
+
+### Pemilih tampilan
+Panel admin punya kontrol Windows 98 / iOS. Pilihannya disimpan di `localStorage.keg_tampilan`
+(`"win"` | `"ios"`) per perangkat, lalu halaman pindah ke file pasangannya.
+
+Pengalihnya ada di **blok `<script>` tersendiri di dalam `<head>`** supaya jalan sebelum apa pun
+digambar (kalau ditaruh di skrip utama, tampilan lama sempat berkedip). Tiap file menyimpan
+identitas dirinya di variabel `DIRI` dan hanya pindah kalau pilihannya berbeda. Penjaga putaran:
+`sessionStorage.keg_alih` dipasang sebelum pindah dan dihapus setelah app selesai dimuat
+(di blok start, dekat `pasangTempel()`), juga dihapus tepat sebelum pindah yang disengaja dari
+panel admin. Nilai yang bukan `"win"`/`"ios"` diabaikan. Ada tes khusus untuk putaran
+pengalihan — jangan ubah logika ini tanpa menjalankannya.
+
+Karena file-nya dua, `sw.js` HARUS men-cache `./ios.html` juga, kalau tidak varian iOS mati
+saat offline.
+
+**Utang teknis yang disadari:** dua file berarti setiap fitur dikerjakan dua kali dan rawan
+melenceng. Penggabungan jadi satu file dengan dua skin CSS sudah dibahas dan ditunda karena
+markup keduanya berbeda (`.in kart/.jud/.meta` vs `.cell/.tl/.sb/.chev`), jadi penggabungan
+berarti menulis ulang seluruh render UI. Angkat lagi kalau mulai sering ada yang kelewat
+di salah satu varian.
 
 ---
 

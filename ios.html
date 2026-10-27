@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Catatan Kegiatan Tim</title>
 <link rel="manifest" href="./manifest.json">
+<script>
+// Pengalih tampilan. Harus di head supaya tidak ada kedipan.
+(function(){
+  var DIRI="ios";
+  try{
+    var mau=localStorage.getItem("keg_tampilan");
+    if(mau!=="win"&&mau!=="ios") return;          // nilai aneh: abaikan
+    if(mau===DIRI) return;                         // sudah benar: jangan pindah
+    if(sessionStorage.getItem("keg_alih")==="1") return; // cegah putaran
+    sessionStorage.setItem("keg_alih","1");
+    location.replace("./index.html");
+  }catch(e){}
+})();
+</script>
 <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="./icon-192.png">
@@ -727,6 +741,10 @@ function viewAdmin(){
     '<div class="aksi" style="margin-top:14px"><button data-aksi="login">Masuk</button></div>'+
     '<div class="note">PIN awal 1234 \u2014 ganti setelah masuk.</div>';
   var h='<div style="margin:6px 0 2px"><button data-aksi="logout" style="width:100%">Keluar admin</button></div>';
+  h+='<div class="sect">Tampilan</div><div class="seg" style="margin:0 6px">'+
+    '<button data-aksi="tampilan" data-v="win">Windows 98</button>'+
+    '<button data-aksi="tampilan" data-v="ios" class="tekan">iOS</button></div>'+
+    '<div class="note" style="margin:7px 6px 0">Pilihan disimpan di perangkat ini saja.</div>';
   h+='<div class="sect">Daftar kegiatan</div>'+
     '<div class="note" style="margin:0 6px 7px">Bobot nempel di sini, jadi pas nyatat tinggal pilih.</div>'+
     '<div class="list">'+
@@ -1084,6 +1102,14 @@ document.addEventListener("click",function(ev){
         TAB="catat";stat("Mode admin aktif");render();
         muatDokumen().then(render);}
       else stat("PIN salah");}).catch(function(e){stat("Gagal: "+e.message);});return;}
+  if(a==="tampilan"){
+    if(v!=="win"&&v!=="ios") return;
+    try{localStorage.setItem("keg_tampilan",v);}catch(e){}
+    if(v==="ios"){stat("Tampilan ini sudah dipakai");render();return;}
+    try{sessionStorage.removeItem("keg_alih");}catch(e){}
+    stat("Mengganti tampilan\u2026");
+    location.href="./index.html";
+    return;}
   if(a==="logout"){PIN=null;DOKUMEN=[];try{localStorage.removeItem("keg_pin");}catch(e){}
     stat("Keluar admin");render();return;}
   if(a==="jenis-baru"){formJenis(null);return;}
@@ -1155,6 +1181,7 @@ document.addEventListener("change",function(ev){
     if(tm) document.documentElement.setAttribute("data-tema",tm);
     var sp=localStorage.getItem("keg_pin"); if(sp) PIN=sp;
   }catch(e){}
+  try{sessionStorage.removeItem("keg_alih");}catch(e){}
   pasangTempel();
   muat();
   if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(function(){});
