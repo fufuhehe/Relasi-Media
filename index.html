@@ -515,7 +515,7 @@ function render(){
   var nm=DB.config.nama_tim||"Catatan Kegiatan Tim";
   $("#judul").textContent=nm; document.title=nm;
   $("#ringkas").innerHTML=ringkasHTML();
-  var t=[["catat","Catat"],["orang","Orang"],["admin",PIN?"Admin \u2713":"Admin"]];
+  var t=[["catat","Kegiatan"],["orang","Orang"],["admin",PIN?"Admin \u2713":"Admin"]];
   $("#tabs").innerHTML=t.map(function(x){
     return '<button class="tab'+(TAB===x[0]?" on":"")+'" data-aksi="tab" data-v="'+x[0]+'">'+x[1]+"</button>";}).join("");
   var isi=$("#isi"); isi.className="";
