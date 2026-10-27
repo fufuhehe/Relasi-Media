@@ -183,6 +183,17 @@ details.adm>summary:after{content:" \203A";display:inline-block;transform:rotate
 details.adm[open]>summary:after{transform:rotate(-90deg)}
 .admisi{padding-bottom:6px}
 .fotos{display:flex;flex-wrap:wrap;gap:8px;padding:12px}
+.fotobox img.smp{box-shadow:0 0 0 3px var(--accent)}
+.lb{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.92);display:flex;
+  flex-direction:column;touch-action:pan-y}
+.lb .lbtop{display:flex;align-items:center;gap:8px;padding:8px 10px;color:#fff;font-size:13px}
+.lb .lbtop .sp{flex:1}
+.lb .lbwrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:0 6px}
+.lb img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.lb .lbbot{display:flex;align-items:center;gap:8px;padding:10px}
+.lb .lbbot .tgh{flex:1;text-align:center}
+.lb .nav{width:48px;min-height:40px;flex:none}
+
 .fotobox{position:relative;width:92px;height:92px}
 .fotobox img{width:100%;height:100%;object-fit:cover;display:block;
   background:var(--field);border-radius:12px;cursor:pointer}
@@ -271,6 +282,7 @@ var IKON_LINK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 var BULAN_BUKA=null;
 var ADMIN_BUKA={};
 var MODAL_KEG=null;
+var LB=null;
 var DOKUMEN=[];
 var TAB="catat", PIN=null, FORM=null, MODAL=null;
 var PERIODE={tahun:new Date().getFullYear(),jenis:0};
@@ -537,21 +549,60 @@ function muatDokumen(){
   return rpc("keg_daftar_dokumen",{p_pin:PIN})
     .then(function(d){DOKUMEN=Array.isArray(d)?d:[];})
     .catch(function(){DOKUMEN=[];});}
-function lihatFoto(path){
-  urlFoto(path).then(function(u){
-    var d=document.createElement("div");
-    d.className="tutup"; d.style.zIndex="60";
-    d.innerHTML='<img src="'+u+'" alt="bukti" style="max-width:100%;max-height:92vh;display:block;margin:12px auto">';
-    d.onclick=function(){ if(d.parentNode) document.body.removeChild(d); };
-    document.body.appendChild(d);
-  }).catch(function(e){stat("Gagal: "+e.message);});}
+function fotoSampul(kegId){
+  var f=fotoDi(kegId);
+  if(!f.length) return null;
+  for(var i=0;i<f.length;i++) if(f[i].sampul) return f[i];
+  return f[0];}
+function bukaLB(kegId,i){LB={keg:kegId,i:i||0};gambarLB();}
+function tutupLB(){LB=null;gambarLB();}
+function geserLB(arah){
+  if(!LB) return;
+  var f=fotoDi(LB.keg); if(f.length<2) return;
+  LB.i=(LB.i+arah+f.length)%f.length;
+  gambarLB();}
+function gambarLB(){
+  var el=document.getElementById("lb");
+  if(!LB){ if(el&&el.parentNode) el.parentNode.removeChild(el); return; }
+  var f=fotoDi(LB.keg);
+  if(!f.length){ LB=null; return gambarLB(); }
+  if(LB.i>=f.length) LB.i=0;
+  var x=f[LB.i], banyak=f.length>1;
+  var sampul=(fotoSampul(LB.keg)||{}).id===x.id;
+  if(!el){
+    el=document.createElement("div"); el.id="lb"; el.className="lb";
+    document.body.appendChild(el);
+    el.addEventListener("touchstart",function(e){
+      LB&&(LB.x0=e.touches[0].clientX);},{passive:true});
+    el.addEventListener("touchend",function(e){
+      if(!LB||LB.x0==null) return;
+      var d=e.changedTouches[0].clientX-LB.x0; LB.x0=null;
+      if(Math.abs(d)>45) geserLB(d<0?1:-1);},{passive:true});
+  }
+  el.innerHTML=
+    '<div class="lbtop"><span class="sp">'+(banyak?(LB.i+1)+" / "+f.length:"")+"</span>"+
+      '<button data-aksi="lb-tutup">Tutup</button></div>'+
+    '<div class="lbwrap"><img alt="bukti" src="'+esc(FOTO_URL[x.path]||"")+'"></div>'+
+    '<div class="lbbot">'+
+      (banyak?'<button class="nav" data-aksi="lb-prev">\u2039</button>':'<span class="nav"></span>')+
+      '<span class="tgh">'+
+        (PIN?(sampul?'<span style="color:#fff;font-size:12px">Ini sampulnya</span>'
+                    :'<button data-aksi="lb-sampul" data-v="'+x.id+'">Jadikan sampul</button>')
+            :"")+"</span>"+
+      (banyak?'<button class="nav" data-aksi="lb-next">\u203a</button>':'<span class="nav"></span>')+
+    "</div>";
+  if(!FOTO_URL[x.path]){
+    var im=el.querySelector("img");
+    urlFoto(x.path).then(function(u){ if(im) im.src=u; }).catch(function(){});
+  }}
 function fotoHTML(kegId){
   var f=fotoDi(kegId);
   var h='<div class="sect">Bukti dokumentasi ('+f.length+')</div><div class="list">';
   if(f.length){
-    h+='<div class="fotos">'+f.map(function(x){
+    h+='<div class="fotos">'+f.map(function(x,i){
       return '<div class="fotobox">'+
-        '<img data-fpath="'+esc(x.path)+'" alt="bukti" data-aksi="foto-besar" data-v="'+esc(x.path)+'">'+
+        '<img data-fpath="'+esc(x.path)+'" alt="bukti" data-aksi="foto-besar" data-v="'+kegId+
+          '" data-i="'+i+'"'+(((fotoSampul(kegId)||{}).id===x.id&&f.length>1)?' class="smp"':"")+">"+
         (PIN?'<button class="fotodel" data-aksi="foto-hapus" data-v="'+x.id+
           '" data-k="'+kegId+'" title="Hapus foto">&times;</button>':"")+
         "</div>";}).join("")+"</div>";
@@ -640,7 +691,7 @@ function render(){
   var nm=DB.config.nama_tim||"Catatan Kegiatan Tim";
   $("#judul").textContent=nm; document.title=nm;
   $("#ringkas").innerHTML=ringkasHTML();
-  var t=[["catat","Kegiatan"],["orang","Pemerataan"],["admin","Admin"]];
+  var t=[["catat","Kegiatan"],["orang","Tim"],["admin","Admin"]];
   $("#tabs").innerHTML=t.map(function(x){
     return '<button class="'+(TAB===x[0]?"on":"")+'" data-aksi="tab" data-v="'+x[0]+'">'+ICO[x[0]]+
       "<span>"+x[1]+(x[0]==="admin"&&PIN?" \u2713":"")+"</span></button>";}).join("");
@@ -681,7 +732,7 @@ function viewCatat(){
   function cell(k){
     var f=fotoDi(k.id), nf=f.length, nd=PIN?dokDi(k.id).length:0;
     return '<div class="cell" data-aksi="detail" data-v="'+k.id+'">'+
-      (nf?'<img class="kthumb" data-fpath="'+esc(f[0].path)+'" alt="">'
+      (nf?'<img class="kthumb" data-fpath="'+esc((fotoSampul(k.id)||f[0]).path)+'" alt="">'
          :'<span class="kthumb kosong" title="belum ada foto"></span>')+
       '<div class="tx">'+
       (nd?'<span class="klink" title="'+nd+' dokumen">'+IKON_LINK+"</span>":"")+
@@ -1094,7 +1145,20 @@ document.addEventListener("click",function(ev){
     if(kk) salin(teksKegiatan(kk),"Tersalin");return;}
   if(a==="wa-rekap"){salin(teksRekap(),"Rekap tersalin");return;}
   if(a==="csv"){unduhCSV();return;}
-  if(a==="foto-besar"){lihatFoto(v);return;}
+  if(a==="foto-besar"){
+    bukaLB(parseInt(v,10),parseInt(t.getAttribute("data-i"),10)||0);return;}
+  if(a==="lb-tutup"){tutupLB();return;}
+  if(a==="lb-prev"){geserLB(-1);return;}
+  if(a==="lb-next"){geserLB(1);return;}
+  if(a==="lb-sampul"){
+    var idS=parseInt(v,10);
+    rpc("keg_set_sampul",{p_pin:PIN,p_id:idS})
+      .then(function(){return muat();})
+      .then(function(){
+        if(LB){ var kk=LB.keg; detailKegiatan(kk); gambarLB(); }
+        stat("Sampul diganti");})
+      .catch(function(e){stat("Gagal: "+e.message);});
+    return;}
   if(a==="dok-tambah"){formDokumen(parseInt(v,10));return;}
   if(a==="dok-simpan"){
     var du=$("#dUrl").value.trim(), dn=$("#dNama").value.trim();

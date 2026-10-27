@@ -62,7 +62,7 @@ Keamanan datang dari RLS + pencabutan grant, bukan dari menyembunyikan key.
 - `keg_kegiatan` — satu baris = sekali jalan. jenis_id, judul, tanggal (nullable),
   jumlah_hari, lokasi, tier, tingkat_beban, ketua_id, catatan
 - `keg_penugasan` — kegiatan_id + anggota_id saja (tidak ada kolom peran)
-- `keg_foto` — bukti dokumentasi: kegiatan_id, path (unik), keterangan, dibuat
+- `keg_foto` — bukti dokumentasi: kegiatan_id, path (unik), keterangan, dibuat, `sampul` bool
 - `keg_dokumen` — link dokumen & folder Drive: kegiatan_id, url, nama, dibuat. **ADMIN ONLY**
 - `keg_config` — PIN + faktor skor. View `keg_config_public` = config tanpa PIN.
 
@@ -90,6 +90,18 @@ hanya tampil di perangkat bermouse (`adaMouse()`, pakai `window.matchMedia` — 
 **JANGAN kirim header `apikey`/`Authorization` pada PUT ke signed URL.** Header auth ganda
 menghasilkan `403 Invalid Compact JWS` — bug yang sama pernah mematikan unggahan di proyek
 Notulen (v51). Ada tes khusus untuk ini.
+
+### Penampil foto & sampul
+Ketuk foto di layar detail membuka penampil layar penuh (`LB`, elemen `#lb` yang dibuat
+sekali lalu diisi ulang `gambarLB()`): geser kiri-kanan di layar sentuh (ambang 45px), tombol
+panah di layar lebar, penanda urutan, dan tombol **Jadikan sampul** untuk admin. Satu-satunya
+tempat memilih sampul — sengaja tidak ada tombol per thumbnail di grid supaya grid tetap
+bersih.
+
+`fotoSampul(kegId)` memilih foto bertanda `sampul`, kalau tidak ada jatuh ke foto pertama.
+Hanya satu sampul per kegiatan, dijaga di `keg_set_sampul(p_pin,p_id)` yang mengosongkan
+yang lain dulu. **App tetap jalan kalau kolom `sampul` belum ada** (jatuh ke foto pertama);
+ada tes untuk keadaan itu — jaga sifat ini kalau menambah kolom lain.
 
 Menampilkan foto: bucket privat, jadi perlu signed URL —
 POST `/storage/v1/object/sign/bukti/{path}` body `{"expiresIn":3600}`. Balasannya
