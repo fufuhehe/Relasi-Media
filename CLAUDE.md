@@ -87,6 +87,16 @@ POST `/storage/v1/object/sign/bukti/{path}` body `{"expiresIn":3600}`. Balasanny
 `signedURL` berupa path RELATIF; URL lengkap = `SB_URL + "/storage/v1" + signedURL`.
 Hasilnya di-cache di `FOTO_URL`.
 
+**Daftar kegiatan menampilkan thumbnail foto pertama**, jadi tanda tangannya WAJIB dibatch —
+POST `/storage/v1/object/sign/bukti` (tanpa path) body `{"expiresIn":3600,"paths":[…]}` lewat
+`urlFotoBanyak()`, dipecah per 100 path. Satu request untuk seluruh daftar. Jangan kembali ke
+tanda tangan satu per satu di dalam perulangan daftar: dengan ratusan catatan itu berarti
+ratusan request sekali buka.
+
+Daftar dikelompokkan per bulan sebagai `<details>` yang bisa dilipat. Bulan terbaru terbuka
+secara bawaan; status buka/tutup disimpan di `BULAN_BUKA` (memori, bukan localStorage) supaya
+tidak hilang saat render ulang — listener dipasang oleh `pasangBulan()` tiap render.
+
 ---
 
 ## Logika inti — jangan diubah tanpa diminta

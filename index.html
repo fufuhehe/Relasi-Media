@@ -86,6 +86,10 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pilih input[type=checkbox]{width:24px;height:24px;min-height:24px;flex:none;box-shadow:none;margin:0}
 .pilih .nm{flex:1;min-width:0}
 .kosong{padding:18px;text-align:center;color:var(--textdim);font-size:13px}
+.krow{display:flex;gap:8px;align-items:flex-start}
+.kinfo{flex:1;min-width:0}
+.kthumb{width:58px;height:58px;flex:none;object-fit:cover;display:block;background:var(--field);
+  border:1px solid;border-color:var(--shadow) var(--light) var(--light) var(--shadow)}
 .fotos{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .fotobox{position:relative;width:90px;height:90px}
 .fotobox img{width:100%;height:100%;object-fit:cover;display:block;background:var(--field);
@@ -99,6 +103,9 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tutup{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;overflow:auto;padding:8px}
 .modal{max-width:600px;margin:10px auto}
 details>summary{cursor:pointer;padding:7px 4px;font-weight:bold;font-size:13px;list-style:none}
+details.bln{margin-top:8px}
+details.bln>summary{padding:9px 4px;border-bottom:1px solid var(--shadow)}
+details.bln[open]>summary{margin-bottom:6px}
 details>summary::-webkit-details-marker{display:none}
 details>summary:before{content:"\25B8 ";}
 details[open]>summary:before{content:"\25BE ";}
@@ -127,6 +134,7 @@ var HDR={apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"applicatio
 
 var DB={anggota:[],jenis:[],kegiatan:[],penugasan:[],foto:[],config:{}};
 var FOTO_URL={};
+var BULAN_BUKA=null;
 var TAB="catat", PIN=null, FORM=null, MODAL=null;
 var PERIODE={tahun:new Date().getFullYear(),jenis:0};
 var CATAT_JENIS=0;
@@ -275,14 +283,33 @@ function urlFoto(path){
     .then(function(d){
       var u=SB_URL+"/storage/v1"+d.signedURL;
       FOTO_URL[path]=u; return u;});}
+function urlFotoBanyak(paths){
+  var perlu=paths.filter(function(p){return p&&!FOTO_URL[p];});
+  if(!perlu.length) return Promise.resolve();
+  var tugas=[];
+  for(var i=0;i<perlu.length;i+=100) tugas.push(perlu.slice(i,i+100));
+  return Promise.all(tugas.map(function(blok){
+    return fetch(SB_URL+"/storage/v1/object/sign/bukti",
+        {method:"POST",headers:HDR,body:JSON.stringify({expiresIn:3600,paths:blok})})
+      .then(function(r){ if(!r.ok) throw new Error("gagal ("+r.status+")"); return r.json();})
+      .then(function(d){
+        (d||[]).forEach(function(x){
+          if(x&&x.signedURL&&!x.error) FOTO_URL[x.path]=SB_URL+"/storage/v1"+x.signedURL;});
+      });
+  })).catch(function(){});}
 function pasangFoto(){
-  var arr=document.querySelectorAll("img[data-fpath]");
-  for(var i=0;i<arr.length;i++)(function(im){
-    if(im.getAttribute("data-siap")) return;
-    im.setAttribute("data-siap","1");
-    urlFoto(im.getAttribute("data-fpath")).then(function(u){im.src=u;})
-      .catch(function(){im.alt="gagal muat";});
-  })(arr[i]);}
+  var arr=document.querySelectorAll("img[data-fpath]:not([data-siap])");
+  if(!arr.length) return;
+  var daftar=[];
+  for(var i=0;i<arr.length;i++) daftar.push(arr[i].getAttribute("data-fpath"));
+  urlFotoBanyak(daftar).then(function(){
+    for(var j=0;j<arr.length;j++)(function(im){
+      im.setAttribute("data-siap","1");
+      var p=im.getAttribute("data-fpath");
+      if(FOTO_URL[p]){ im.src=FOTO_URL[p]; return; }
+      urlFoto(p).then(function(u){im.src=u;}).catch(function(){im.alt="gagal muat";});
+    })(arr[j]);
+  });}
 function lihatFoto(path){
   urlFoto(path).then(function(u){
     var d=document.createElement("div");
@@ -377,7 +404,18 @@ function render(){
     return '<button class="tab'+(TAB===x[0]?" on":"")+'" data-aksi="tab" data-v="'+x[0]+'">'+x[1]+"</button>";}).join("");
   var isi=$("#isi"); isi.className="";
   isi.innerHTML = TAB==="catat"?viewCatat() : TAB==="orang"?viewOrang() : viewAdmin();
-  gambarLapis();}
+  pasangBulan();
+  gambarLapis();
+  pasangFoto();}
+function pasangBulan(){
+  var d=document.querySelectorAll("details[data-bln]");
+  for(var i=0;i<d.length;i++)(function(el){
+    el.addEventListener("toggle",function(){
+      if(!BULAN_BUKA) BULAN_BUKA={};
+      BULAN_BUKA[el.getAttribute("data-bln")]=el.open;
+      if(el.open) pasangFoto();
+    });
+  })(d[i]);}
 
 function viewCatat(){
   var h="";
@@ -398,24 +436,34 @@ function viewCatat(){
     var o=orangDi(k.id);
     var nama=o.length?o.map(function(a){return esc(a.nama)+(k.ketua_id===a.id?" *":"");}).join(", ")
       :"belum ada nama";
-    var nf=fotoDi(k.id).length;
+    var f=fotoDi(k.id), nf=f.length;
     return '<div class="in kart" data-aksi="detail" data-v="'+k.id+'">'+
-      '<div class="jud">'+esc(namaKeg(k))+"</div>"+
-      '<div class="meta">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+
-        (k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
-      '<div class="meta">'+nama+"</div>"+
-      (nf?'<span class="chip">'+nf+" foto</span>"
-         :'<span class="chip w">belum ada foto</span>')+"</div>";}
+      '<div class="krow">'+
+      (nf?'<img class="kthumb" data-fpath="'+esc(f[0].path)+'" alt="">':"")+
+      '<div class="kinfo">'+
+        '<div class="jud">'+esc(namaKeg(k))+"</div>"+
+        '<div class="meta">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+
+          (k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
+        '<div class="meta">'+nama+"</div>"+
+        (nf?(nf>1?'<span class="chip">'+nf+" foto</span>":"")
+           :'<span class="chip w">belum ada foto</span>')+
+      "</div></div></div>";}
   h+='<div style="margin-top:8px">';
   if(tanpa.length)
     h+="<details><summary>Belum bertanggal ("+tanpa.length+")</summary>"+
       tanpa.map(kartu).join("")+"</details>";
-  var bulanKini="";
+  var grup=[], peta={};
   ada.forEach(function(k){
     var p=k.tanggal.split("-"), key=p[0]+"-"+p[1];
-    if(key!==bulanKini){bulanKini=key;
-      h+='<div class="meta" style="margin:10px 0 2px;font-weight:bold">'+BLN[parseInt(p[1],10)]+" "+p[0]+"</div>";}
-    h+=kartu(k);});
+    if(!peta[key]){peta[key]={key:key,label:BLN[parseInt(p[1],10)]+" "+p[0],isi:[]};
+      peta[key].urut=grup.push(peta[key])-1;}
+    peta[key].isi.push(k);});
+  if(BULAN_BUKA===null){BULAN_BUKA={}; if(grup.length) BULAN_BUKA[grup[0].key]=true;}
+  grup.forEach(function(gr){
+    var buka=!!BULAN_BUKA[gr.key];
+    h+='<details class="bln" data-bln="'+gr.key+'"'+(buka?" open":"")+">"+
+       "<summary>"+gr.label+" <span class=\"meta\">("+gr.isi.length+")</span></summary>"+
+       gr.isi.map(kartu).join("")+"</details>";});
   h+="</div>";
   if(PIN) h+='<div class="aksi"><button data-aksi="wa-rekap">Salin rekap ke WA</button>'+
              '<button data-aksi="csv">Export CSV</button></div>';
