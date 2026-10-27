@@ -78,6 +78,14 @@ mengembalikan signed upload URL. Bucket **`bukti`** privat, batas 2 MB/file.
 Urutan di app: minta izin ke Edge Function → PUT file ke signed URL → catat lewat
 `keg_simpan_foto`.
 
+Foto bisa masuk lewat tiga jalan, semuanya bermuara ke `unggahBanyak()`: pilih file,
+**tempel dari clipboard (Ctrl+V)**, dan **seret-lepas**. Dua jalan terakhir menyasar kegiatan
+yang modalnya sedang terbuka, dilacak lewat `MODAL_KEG` — yang WAJIB direset di `bukaModal()`,
+`tutupModal()` dan `bukaForm()`, kalau tidak foto bisa nyasar ke kegiatan yang salah.
+Listener dipasang sekali oleh `pasangTempel()` saat app mulai. Petunjuk "Ctrl+V / seret"
+hanya tampil di perangkat bermouse (`adaMouse()`, pakai `window.matchMedia` — jangan panggil
+`matchMedia` telanjang).
+
 **JANGAN kirim header `apikey`/`Authorization` pada PUT ke signed URL.** Header auth ganda
 menghasilkan `403 Invalid Compact JWS` — bug yang sama pernah mematikan unggahan di proyek
 Notulen (v51). Ada tes khusus untuk ini.
