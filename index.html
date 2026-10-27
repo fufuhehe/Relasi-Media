@@ -136,6 +136,7 @@ var DB={anggota:[],jenis:[],kegiatan:[],penugasan:[],foto:[],config:{}};
 var FOTO_URL={};
 var BULAN_BUKA=null;
 var MODAL_KEG=null;
+var DOKUMEN=[];
 var TAB="catat", PIN=null, FORM=null, MODAL=null;
 var PERIODE={tahun:new Date().getFullYear(),jenis:0};
 var CATAT_JENIS=0;
@@ -247,6 +248,8 @@ function muat(){
     DB.anggota=r[0]; DB.jenis=r[1]; DB.kegiatan=r[2]; DB.penugasan=r[3];
     DB.config={}; r[4].forEach(function(c){DB.config[c.kunci]=c.nilai;});
     DB.foto=r[5]||[];
+    if(PIN) return muatDokumen();
+    DOKUMEN=[];
     stat(DB.kegiatan.length+" catatan kegiatan");
     render();
   }).catch(function(e){
@@ -339,6 +342,20 @@ function pasangTempel(){
     if(!f.length) return;
     ev.preventDefault();
     unggahBanyak(MODAL_KEG,f);});}
+function urlAman(u){return /^https:\/\//i.test(String(u||""));}
+function dokDi(kegId){return DOKUMEN.filter(function(d){return d.kegiatan_id===kegId;});}
+function tebakNama(u){
+  if(/\/drive\/folders\//.test(u)) return "Folder Drive";
+  if(/\/document\//.test(u))        return "Google Docs";
+  if(/\/spreadsheets\//.test(u))    return "Spreadsheet";
+  if(/\/presentation\//.test(u))    return "Slides";
+  if(/drive\.google\.com/.test(u))  return "File Drive";
+  try{ return u.replace(/^https:\/\//,"").split("/")[0]; }catch(e){ return "Link"; }}
+function muatDokumen(){
+  if(!PIN){DOKUMEN=[];return Promise.resolve();}
+  return rpc("keg_daftar_dokumen",{p_pin:PIN})
+    .then(function(d){DOKUMEN=Array.isArray(d)?d:[];})
+    .catch(function(){DOKUMEN=[];});}
 function lihatFoto(path){
   urlFoto(path).then(function(u){
     var d=document.createElement("div");
@@ -364,6 +381,34 @@ function fotoHTML(kegId){
     h+='<div class="aksi"><button data-aksi="foto-tambah" data-v="'+kegId+'">+ Tambah foto</button></div>';
     if(adaMouse()) h+='<div class="meta" style="margin-top:6px">Bisa juga tempel (Ctrl+V) atau seret foto ke sini.</div>';}
   return h+"</fieldset>";}
+function dokHTML(kegId){
+  if(!PIN) return "";
+  var d=dokDi(kegId);
+  var h='<fieldset class="grp"><legend>Dokumen &amp; folder ('+d.length+")</legend>";
+  if(d.length){
+    h+=d.map(function(x){
+      return '<div class="pilih"><span class="nm">'+
+        (urlAman(x.url)
+          ?'<a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">'+
+             esc(x.nama||tebakNama(x.url))+"</a>"
+          :'<b>'+esc(x.nama||"Link tidak aman")+'</b> <span class="chip w">bukan https</span>')+
+        '<div class="meta" style="word-break:break-all">'+esc(x.url)+"</div></span>"+
+        '<button class="kecil" data-aksi="dok-hapus" data-v="'+x.id+
+          '" data-k="'+kegId+'">Hapus</button></div>';}).join("");
+  } else {
+    h+='<div class="meta">Belum ada link.</div>';
+  }
+  h+='<div class="aksi"><button data-aksi="dok-tambah" data-v="'+kegId+'">+ Tambah link</button></div>'+
+     '<div class="meta" style="margin-top:6px">Hanya terlihat saat mode admin.</div>';
+  return h+"</fieldset>";}
+function formDokumen(kegId){
+  var h='<label>Link (harus https://)</label>'+
+    '<input id=dUrl placeholder="https://drive.google.com/drive/folders/...">'+
+    "<label>Nama (boleh kosong)</label>"+
+    '<input id=dNama placeholder="otomatis dari link">'+
+    '<div class="aksi"><button data-aksi="dok-simpan" data-v="'+kegId+'">Simpan</button>'+
+    '<button data-aksi="tutup">Batal</button></div>';
+  bukaModal("Tambah link dokumen",h);}
 function unggahBanyak(kegId,files){
   if(!PIN){stat("Masuk admin dulu");return;}
   var total=files.length, ke=0, gagal=0;
@@ -478,6 +523,7 @@ function viewCatat(){
         '<div class="meta">'+nama+"</div>"+
         (nf?(nf>1?'<span class="chip">'+nf+" foto</span>":"")
            :'<span class="chip w">belum ada foto</span>')+
+        (PIN&&dokDi(k.id).length?'<span class="chip">link</span>':"")+
       "</div></div></div>";}
   h+='<div style="margin-top:8px">';
   if(tanpa.length)
@@ -727,7 +773,7 @@ function detailKegiatan(id){
     '<fieldset class="grp"><legend>Yang jalan ('+o.length+")</legend>"+
     (o.length?(grp("Ketua",ket)+grp("Anggota",tim)+grp("TU",tu))
       :'<div class="kosong">Belum diisi.</div>')+"</fieldset>"+
-    fotoHTML(id)+
+    fotoHTML(id)+dokHTML(id)+
     '<div class="aksi"><button data-aksi="wa-keg" data-v="'+id+'">Salin ke WA</button>'+
     (PIN?'<button data-aksi="edit-keg" data-v="'+id+'">Ubah</button>':"")+
     '<button data-aksi="tutup">Tutup</button></div>';
@@ -888,6 +934,25 @@ document.addEventListener("click",function(ev){
   if(a==="wa-rekap"){salin(teksRekap(),"Rekap tersalin");return;}
   if(a==="csv"){unduhCSV();return;}
   if(a==="foto-besar"){lihatFoto(v);return;}
+  if(a==="dok-tambah"){formDokumen(parseInt(v,10));return;}
+  if(a==="dok-simpan"){
+    var du=$("#dUrl").value.trim(), dn=$("#dNama").value.trim();
+    if(!du){stat("Isi link dulu");return;}
+    var kidD=parseInt(v,10);
+    rpc("keg_simpan_dokumen",{p_pin:PIN,p_id:null,p_kegiatan_id:kidD,
+      p_url:du,p_nama:dn||tebakNama(du)})
+      .then(function(){return muatDokumen();})
+      .then(function(){stat("Link tersimpan"); detailKegiatan(kidD);})
+      .catch(function(e){stat("Gagal: "+e.message);});
+    return;}
+  if(a==="dok-hapus"){
+    if(!confirm("Hapus link ini?")) return;
+    var kidX=parseInt(t.getAttribute("data-k"),10);
+    rpc("keg_hapus_dokumen",{p_pin:PIN,p_id:parseInt(v,10)})
+      .then(function(){return muatDokumen();})
+      .then(function(){stat("Link dihapus"); detailKegiatan(kidX);})
+      .catch(function(e){stat("Gagal: "+e.message);});
+    return;}
   if(a==="foto-tambah"){
     var kidT=parseInt(v,10);
     var inp=document.createElement("input");
@@ -912,9 +977,10 @@ document.addEventListener("click",function(ev){
     stat("Memeriksa\u2026");
     rpc("keg_cek_pin",{p_pin:p}).then(function(ok){
       if(ok===true){PIN=p;try{localStorage.setItem("keg_pin",p);}catch(e){}
-        TAB="catat";stat("Mode admin aktif");render();}
+        TAB="catat";stat("Mode admin aktif");render();
+        muatDokumen().then(render);}
       else stat("PIN salah");}).catch(function(e){stat("Gagal: "+e.message);});return;}
-  if(a==="logout"){PIN=null;try{localStorage.removeItem("keg_pin");}catch(e){}
+  if(a==="logout"){PIN=null;DOKUMEN=[];try{localStorage.removeItem("keg_pin");}catch(e){}
     stat("Keluar admin");render();return;}
   if(a==="jenis-baru"){formJenis(null);return;}
   if(a==="jenis-edit"){formJenis(cari(DB.jenis,parseInt(v,10)));return;}

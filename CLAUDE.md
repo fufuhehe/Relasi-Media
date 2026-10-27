@@ -63,6 +63,7 @@ Keamanan datang dari RLS + pencabutan grant, bukan dari menyembunyikan key.
   jumlah_hari, lokasi, tier, tingkat_beban, ketua_id, catatan
 - `keg_penugasan` — kegiatan_id + anggota_id saja (tidak ada kolom peran)
 - `keg_foto` — bukti dokumentasi: kegiatan_id, path (unik), keterangan, dibuat
+- `keg_dokumen` — link dokumen & folder Drive: kegiatan_id, url, nama, dibuat. **ADMIN ONLY**
 - `keg_config` — PIN + faktor skor. View `keg_config_public` = config tanpa PIN.
 
 Anon **hanya SELECT**; grant INSERT/UPDATE/DELETE sudah dicabut. Semua tulis lewat fungsi
@@ -94,6 +95,25 @@ Menampilkan foto: bucket privat, jadi perlu signed URL —
 POST `/storage/v1/object/sign/bukti/{path}` body `{"expiresIn":3600}`. Balasannya
 `signedURL` berupa path RELATIF; URL lengkap = `SB_URL + "/storage/v1" + signedURL`.
 Hasilnya di-cache di `FOTO_URL`.
+
+### Link dokumen & folder Drive — admin only
+`keg_dokumen` TIDAK boleh dibaca anon: RLS aktif tanpa policy select dan semua grant dicabut,
+jadi tabel ini tidak ada di REST. Dibaca HANYA lewat `keg_daftar_dokumen(p_pin)`; ditulis lewat
+`keg_simpan_dokumen` / `keg_hapus_dokumen`.
+
+**Alasannya penting:** app tidak punya login, jadi apa pun yang kebaca anon = kebaca publik.
+Isi dokumen memang dijaga Google Drive, tapi JUDUL surat dinas pun metadata sensitif. Jangan
+pernah memindahkan link ini jadi kolom di `keg_kegiatan` — tabel itu kebaca anon.
+
+Di app: `DOKUMEN` dimuat oleh `muatDokumen()` saat login/`muat()` dan dikosongkan saat logout.
+`dokHTML()` mengembalikan string kosong kalau `PIN` null. Penanda "link" di daftar juga hanya
+muncul saat admin. URL divalidasi dua lapis: `^https://` di fungsi SQL saat simpan, dan
+`urlAman()` di frontend saat render — yang bukan https ditampilkan sebagai teks, bukan `<a>`,
+supaya `javascript:` tidak pernah jadi href.
+
+Keputusan: pakai tempel-link, BUKAN Google Picker. Picker butuh setup Cloud Console (OAuth
+client, origin, scope `drive.file`) dan token yang mati tiap jam — ditunda sampai tempel-link
+terbukti kurang. Izin akses dokumen tetap diurus Drive, bukan app ini.
 
 **Daftar kegiatan menampilkan thumbnail foto pertama**, jadi tanda tangannya WAJIB dibatch —
 POST `/storage/v1/object/sign/bukti` (tanpa path) body `{"expiresIn":3600,"paths":[…]}` lewat
