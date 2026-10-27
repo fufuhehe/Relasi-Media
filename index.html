@@ -83,10 +83,10 @@ label{display:block;margin:9px 0 3px;font-weight:bold;font-size:13px}
 .grp{border:1px solid;border-color:var(--shadow) var(--light) var(--light) var(--shadow);
   padding:8px;margin:12px 0 0}
 .grp>legend{padding:0 4px;font-weight:bold;font-size:13px}
-.kart{padding:8px;margin-bottom:6px;cursor:pointer}
+.kart{padding:6px;margin-bottom:4px;cursor:pointer}
 .kart .jud{font-weight:bold}
-.meta{font-size:12px;color:var(--textdim)}
-.chip{display:inline-block;padding:1px 5px;margin:2px 3px 0 0;font-size:11px;
+.meta{font-size:12px;color:var(--textdim);line-height:1.3}
+.chip{display:inline-block;padding:0 5px;margin:1px 3px 0 0;font-size:11px;
   border:1px solid var(--dark);background:var(--face)}
 .chip.w{border-color:var(--alert);color:var(--alert);font-weight:bold}
 table{border-collapse:collapse;width:100%;font-size:13px}
@@ -102,8 +102,11 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .kosong{padding:18px;text-align:center;color:var(--textdim);font-size:13px}
 .krow{display:flex;gap:8px;align-items:flex-start}
 .kinfo{flex:1;min-width:0}
-.kthumb{width:58px;height:58px;flex:none;object-fit:cover;display:block;background:var(--field);
+.kthumb{width:46px;height:46px;flex:none;object-fit:cover;display:block;background:var(--field);
   border:1px solid;border-color:var(--shadow) var(--light) var(--light) var(--shadow)}
+.kthumb.kosong{background:transparent}
+.lbh{color:var(--shadow)}
+.cips{margin-top:1px}
 .fotos{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .fotobox{position:relative;width:90px;height:90px}
 .fotobox img{width:100%;height:100%;object-fit:cover;display:block;background:var(--field);
@@ -194,6 +197,16 @@ function labelFilter(){var j=PERIODE.jenis?cari(DB.jenis,PERIODE.jenis):null;
   return (PERIODE.tahun||"semua waktu")+(j?" \u00b7 "+j.nama:"");}
 function cari(arr,id){for(var i=0;i<arr.length;i++) if(arr[i].id===id) return arr[i];return null;}
 function fotoDi(kegId){return DB.foto.filter(function(f){return f.kegiatan_id===kegId;});}
+function namaRingkas(k,maks){
+  var o=orangDi(k.id);
+  if(!o.length) return '<span class="lbh">belum ada nama</span>';
+  var ket=[],sisa=[];
+  o.forEach(function(a){ (k.ketua_id===a.id?ket:sisa).push(a); });
+  var urut=ket.concat(sisa), n=maks||4;
+  var tampil=urut.slice(0,n).map(function(a){
+    return esc(a.nama)+(k.ketua_id===a.id?" *":"");});
+  var lebih=urut.length-tampil.length;
+  return tampil.join(", ")+(lebih>0?' <span class="lbh">+'+lebih+" lagi</span>":"");}
 function angg(id){return cari(DB.anggota,id);}
 function namaKeg(k){
   var j=k.jenis_id?cari(DB.jenis,k.jenis_id):null;
@@ -534,21 +547,20 @@ function viewCatat(){
     if(a.tanggal!==b.tanggal) return a.tanggal<b.tanggal?1:-1;
     return a.dibuat<b.dibuat?1:-1;});
   function kartu(k){
-    var o=orangDi(k.id);
-    var nama=o.length?o.map(function(a){return esc(a.nama)+(k.ketua_id===a.id?" *":"");}).join(", ")
-      :"belum ada nama";
-    var f=fotoDi(k.id), nf=f.length;
+    var f=fotoDi(k.id), nf=f.length, nd=PIN?dokDi(k.id).length:0;
+    var cip="";
+    if(nf>1) cip+='<span class="chip">'+nf+" foto</span>";
+    if(nd)   cip+='<span class="chip">link</span>';
     return '<div class="in kart" data-aksi="detail" data-v="'+k.id+'">'+
       '<div class="krow">'+
-      (nf?'<img class="kthumb" data-fpath="'+esc(f[0].path)+'" alt="">':"")+
+      (nf?'<img class="kthumb" data-fpath="'+esc(f[0].path)+'" alt="">'
+         :'<span class="kthumb kosong" title="belum ada foto"></span>')+
       '<div class="kinfo">'+
         '<div class="jud">'+esc(namaKeg(k))+"</div>"+
         '<div class="meta">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+
           (k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
-        '<div class="meta">'+nama+"</div>"+
-        (nf?(nf>1?'<span class="chip">'+nf+" foto</span>":"")
-           :'<span class="chip w">belum ada foto</span>')+
-        (PIN&&dokDi(k.id).length?'<span class="chip">link</span>':"")+
+        '<div class="meta">'+namaRingkas(k)+"</div>"+
+        (cip?'<div class="cips">'+cip+"</div>":"")+
       "</div></div></div>";}
   h+='<div style="margin-top:8px">';
   if(tanpa.length)

@@ -202,6 +202,23 @@ bottom-sheet.
 Dua-duanya skin di atas layout mobile-first, bukan simulasi desktop. Jangan bikin window yang
 bisa digeser atau taskbar — dia buka ini dari HP.
 
+### Kerapatan daftar
+Target sekitar 6-7 kartu per layar HP, rapat tapi masih nyaman diketuk. Aturan yang menjaga itu:
+
+- **Slot foto SELALU ada** (46px), terisi thumbnail atau `kthumb kosong` yang transparan
+  dengan garis tipis. Gunanya dua: tepi kiri teks jadi rata (tanpa ini daftarnya bergerigi
+  dan capek dibaca), dan slot kosong itu SENDIRI yang menandakan belum ada foto.
+- Karena itu **tidak ada lagi chip merah "belum ada foto" di daftar** — 84 dari 87 kartu
+  punya chip itu, jadi merahnya kehilangan arti dan malah menuhin layar. Keterangannya pindah
+  ke atribut `title` slot kosong, hitungannya tetap ada di ringkasan atas.
+- Nama dipotong lewat `namaRingkas(k,maks)`: 4 nama (ketua selalu didahulukan dan ditandai
+  `*`), sisanya jadi `+N lagi` dengan class `lbh` yang redup. Daftar 12 nama sebelumnya makan
+  3 baris. Nama lengkap tetap ada di layar detail.
+- **Semua chip dalam SATU pembungkus `.cips`**, jangan satu `<div>` per chip. Bug ini pernah
+  terjadi: di `ios.html` tiap chip dibungkus `<div class="sb">` sehingga "2 foto" dan "link"
+  bertumpuk ke bawah, sementara di `index.html` sudah sebaris. Ada tes khusus untuk ini.
+- Kalau tidak ada chip sama sekali, baris `.cips` tidak dirender — jangan sisakan baris kosong.
+
 ### Pemilih tampilan
 Panel admin punya kontrol **Jadul / Modern**. Itu label di UI; nilai yang disimpan tetap
 `"win"` / `"ios"` di `localStorage.keg_tampilan` (per perangkat) supaya tidak perlu migrasi.

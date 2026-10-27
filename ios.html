@@ -61,23 +61,23 @@ body{background:var(--bg);color:var(--text);
   padding:0 14px calc(76px + env(safe-area-inset-bottom))}
 
 /* nav header */
-.nav{position:sticky;top:0;z-index:30;margin:0 -14px;padding:10px 16px 10px;
+.nav{position:sticky;top:0;z-index:30;margin:0 -14px;padding:7px 16px 8px;
   background:var(--bg);background:color-mix(in srgb,var(--bg) 80%,transparent);
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
 .navrow{display:flex;align-items:center;gap:8px}
-.title{flex:1;font-size:25px;font-weight:800;letter-spacing:-.03em;
+.title{flex:1;font-size:21px;font-weight:800;letter-spacing:-.03em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .iconbtn{width:36px;height:36px;min-height:36px;border-radius:50%;flex:none;
   background:var(--card2);border:1px solid var(--sep);color:var(--accent);
   font-size:17px;padding:0;box-shadow:none;display:flex;align-items:center;justify-content:center}
-.sub{color:var(--textdim);font-size:14px;margin-top:3px}
+.sub{color:var(--textdim);font-size:13px;margin-top:2px}
 .sub b{color:var(--text);font-weight:600}
 
 /* section + inset list */
 .sect{font-size:13px;font-weight:600;color:var(--textdim);text-transform:uppercase;
   letter-spacing:.04em;margin:22px 6px 7px}
 .list{background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
-.cell{display:flex;align-items:center;gap:12px;padding:12px 16px;min-height:46px;
+.cell{display:flex;align-items:center;gap:12px;padding:9px 16px;min-height:44px;
   cursor:pointer;transition:background .1s}
 .cell+.cell{border-top:1px solid var(--sep)}
 .cell:active{background:var(--card2)}
@@ -168,8 +168,11 @@ details>summary.frow{padding:13px 16px}
   margin:0;box-shadow:none;-webkit-appearance:auto;appearance:auto}
 
 /* foto */
-.kthumb{width:52px;height:52px;flex:none;object-fit:cover;display:block;
-  background:var(--field);border-radius:10px;margin-right:12px}
+.kthumb{width:46px;height:46px;flex:none;object-fit:cover;display:block;
+  background:var(--card2);border-radius:10px;margin-right:12px}
+.kthumb.kosong{box-shadow:inset 0 0 0 1px var(--sep);background:transparent}
+.lbh{color:var(--textdim);opacity:.65}
+.cips{margin-top:3px;display:flex;gap:4px;flex-wrap:wrap}
 details.adm{margin:0 0 4px}
 details.adm>summary{cursor:pointer;list-style:none}
 details.adm>summary::-webkit-details-marker{display:none}
@@ -305,6 +308,24 @@ function labelFilter(){var j=PERIODE.jenis?cari(DB.jenis,PERIODE.jenis):null;
   return (PERIODE.tahun||"semua waktu")+(j?" \u00b7 "+j.nama:"");}
 function cari(arr,id){for(var i=0;i<arr.length;i++) if(arr[i].id===id) return arr[i];return null;}
 function fotoDi(kegId){return DB.foto.filter(function(f){return f.kegiatan_id===kegId;});}
+function namaRingkas(k,maks){
+  var o=orangDi(k.id);
+  if(!o.length) return '<span class="lbh">belum ada nama</span>';
+  var ket=[],sisa=[];
+  o.forEach(function(a){ (k.ketua_id===a.id?ket:sisa).push(a); });
+  var urut=ket.concat(sisa), n=maks||4;
+  var tampil=urut.slice(0,n).map(function(a){
+    return esc(a.nama)+(k.ketua_id===a.id?" *":"");});
+  var lebih=urut.length-tampil.length;
+  return tampil.join(", ")+(lebih>0?' <span class="lbh">+'+lebih+" lagi</span>":"");}
+function angg(id){return cari(DB.anggota,id);}
+function namaKeg(k){
+  var j=k.jenis_id?cari(DB.jenis,k.jenis_id):null;
+  var n=j?j.nama:"(kegiatan dihapus)";
+  return k.judul?n+" \u2014 "+k.judul:n;}
+
+/* ---------- skor ---------- */
+
 function angg(id){return cari(DB.anggota,id);}
 function namaKeg(k){
   var j=k.jenis_id?cari(DB.jenis,k.jenis_id):null;
@@ -651,19 +672,18 @@ function viewCatat(){
     if(a.tanggal!==b.tanggal) return a.tanggal<b.tanggal?1:-1;
     return a.dibuat<b.dibuat?1:-1;});
   function cell(k){
-    var o=orangDi(k.id);
-    var nama=o.length?o.map(function(a){return esc(a.nama)+(k.ketua_id===a.id?" *":"");}).join(", ")
-      :"belum ada nama";
-    var f=fotoDi(k.id), nf=f.length;
+    var f=fotoDi(k.id), nf=f.length, nd=PIN?dokDi(k.id).length:0;
+    var cip="";
+    if(nf>1) cip+='<span class="chip">'+nf+" foto</span>";
+    if(nd)   cip+='<span class="chip">link</span>';
     return '<div class="cell" data-aksi="detail" data-v="'+k.id+'">'+
-      (nf?'<img class="kthumb" data-fpath="'+esc(f[0].path)+'" alt="">':"")+
+      (nf?'<img class="kthumb" data-fpath="'+esc(f[0].path)+'" alt="">'
+         :'<span class="kthumb kosong" title="belum ada foto"></span>')+
       '<div class="tx">'+
       '<div class="tl">'+esc(namaKeg(k))+"</div>"+
       '<div class="sb">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+(k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
-      '<div class="sb nm">'+nama+"</div>"+
-      (nf?(nf>1?'<div class="sb"><span class="chip">'+nf+" foto</span></div>":"")
-         :'<div class="sb"><span class="chip w">belum ada foto</span></div>')+
-      (PIN&&dokDi(k.id).length?'<div class="sb"><span class="chip">link</span></div>':"")+
+      '<div class="sb nm">'+namaRingkas(k)+"</div>"+
+      (cip?'<div class="cips">'+cip+"</div>":"")+
       "</div><span class=\"chev\"></span></div>";}
   if(tanpa.length)
     h+='<details style="margin-top:6px"><summary class="sect" style="margin:20px 6px 7px">Belum bertanggal ('+tanpa.length+')</summary>'+
