@@ -24,6 +24,12 @@ PWA "buku catatan digital" untuk tim kerja kantor: mencatat siapa jalan ke mana,
 Live di `https://fufuhehe.github.io/Relasi-Media/`. Dipakai satu orang (dia) sebagai pencatat;
 anggota tim cuma melihat.
 
+**Foto bukti bersifat OPSIONAL, bukan wajib.** Sebagian besar catatan dibuat dengan cara
+backfill (fotonya belum tentu ada saat mencatat), jadi mewajibkan foto akan mematikan alur
+catat-cepat. Yang belum ada fotonya cukup diberi penanda, pola sama dengan "belum
+bertanggal". Pemilih file memakai galeri (TANPA atribut `capture`) dan boleh pilih beberapa
+foto sekaligus.
+
 **Filosofi desain — ini yang paling penting:** sesederhana nyatat di kertas.
 Mencatat = pilih kegiatan dari dropdown, centang nama, simpan. Selesai.
 Tanggal, lokasi, ketua, catatan semuanya opsional.
@@ -56,12 +62,30 @@ Keamanan datang dari RLS + pencabutan grant, bukan dari menyembunyikan key.
 - `keg_kegiatan` — satu baris = sekali jalan. jenis_id, judul, tanggal (nullable),
   jumlah_hari, lokasi, tier, tingkat_beban, ketua_id, catatan
 - `keg_penugasan` — kegiatan_id + anggota_id saja (tidak ada kolom peran)
+- `keg_foto` — bukti dokumentasi: kegiatan_id, path (unik), keterangan, dibuat
 - `keg_config` — PIN + faktor skor. View `keg_config_public` = config tanpa PIN.
 
 Anon **hanya SELECT**; grant INSERT/UPDATE/DELETE sudah dicabut. Semua tulis lewat fungsi
 `security definer` yang minta PIN: `keg_cek_pin`, `keg_simpan_jenis`, `keg_hapus_jenis`,
 `keg_simpan_kegiatan`, `keg_hapus_kegiatan`, `keg_simpan_anggota`, `keg_hapus_anggota`,
-`keg_set_config`.
+`keg_set_config`, `keg_simpan_foto`, `keg_hapus_foto` (mengembalikan path supaya app bisa
+menghapus filenya juga).
+
+### Bukti foto — alur upload
+File foto TIDAK bisa diunggah lewat fungsi Postgres, jadi ada Edge Function
+**`bukti-upload`** (Verify JWT dimatikan) yang memeriksa PIN di sisi server lalu
+mengembalikan signed upload URL. Bucket **`bukti`** privat, batas 2 MB/file.
+Urutan di app: minta izin ke Edge Function → PUT file ke signed URL → catat lewat
+`keg_simpan_foto`.
+
+**JANGAN kirim header `apikey`/`Authorization` pada PUT ke signed URL.** Header auth ganda
+menghasilkan `403 Invalid Compact JWS` — bug yang sama pernah mematikan unggahan di proyek
+Notulen (v51). Ada tes khusus untuk ini.
+
+Menampilkan foto: bucket privat, jadi perlu signed URL —
+POST `/storage/v1/object/sign/bukti/{path}` body `{"expiresIn":3600}`. Balasannya
+`signedURL` berupa path RELATIF; URL lengkap = `SB_URL + "/storage/v1" + signedURL`.
+Hasilnya di-cache di `FOTO_URL`.
 
 ---
 
