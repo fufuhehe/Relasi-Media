@@ -218,6 +218,11 @@ Target sekitar 6-7 kartu per layar HP, rapat tapi masih nyaman diketuk. Aturan y
   terjadi: di `ios.html` tiap chip dibungkus `<div class="sb">` sehingga "2 foto" dan "link"
   bertumpuk ke bawah, sementara di `index.html` sudah sebaris. Ada tes khusus untuk ini.
 - Kalau tidak ada chip sama sekali, baris `.cips` tidak dirender — jangan sisakan baris kosong.
+- URL dokumen ditampilkan lewat `ringkasUrl()` dan dikunci satu baris (class `satu`).
+  Jangan pernah `word-break:break-all` pada URL — link Drive panjang dan akan membungkus
+  dua-tiga baris. `href` tetap memakai URL asli yang utuh.
+- Layar detail varian Modern menaruh tier, beban, dan skor jalan dalam SATU baris ringkas,
+  bukan tiga baris `.cell` terpisah — supaya kerapatannya setara varian Jadul.
 
 ### Pemilih tampilan
 Panel admin punya kontrol **Jadul / Modern**. Itu label di UI; nilai yang disimpan tetap

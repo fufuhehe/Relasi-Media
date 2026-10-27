@@ -106,6 +106,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   border:1px solid;border-color:var(--shadow) var(--light) var(--light) var(--shadow)}
 .kthumb.kosong{background:transparent}
 .lbh{color:var(--shadow)}
+.satu{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cips{margin-top:1px}
 .fotos{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .fotobox{position:relative;width:90px;height:90px}
@@ -376,6 +377,10 @@ function pasangTempel(){
     ev.preventDefault();
     unggahBanyak(MODAL_KEG,f);});}
 function urlAman(u){return /^https:\/\//i.test(String(u||""));}
+function ringkasUrl(u){
+  var t=String(u||"").replace(/^https:\/\//i,"").replace(/^www\./i,"");
+  var q=t.indexOf("?"); if(q>0) t=t.slice(0,q);
+  return t.length>46 ? t.slice(0,30)+"\u2026"+t.slice(-12) : t;}
 function dokDi(kegId){return DOKUMEN.filter(function(d){return d.kegiatan_id===kegId;});}
 function tebakNama(u){
   if(/\/drive\/folders\//.test(u)) return "Folder Drive";
@@ -425,7 +430,7 @@ function dokHTML(kegId){
           ?'<a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">'+
              esc(x.nama||tebakNama(x.url))+"</a>"
           :'<b>'+esc(x.nama||"Link tidak aman")+'</b> <span class="chip w">bukan https</span>')+
-        '<div class="meta" style="word-break:break-all">'+esc(x.url)+"</div></span>"+
+        '<div class="meta satu">'+esc(ringkasUrl(x.url))+"</div></span>"+
         '<button class="kecil" data-aksi="dok-hapus" data-v="'+x.id+
           '" data-k="'+kegId+'">Hapus</button></div>';}).join("");
   } else {

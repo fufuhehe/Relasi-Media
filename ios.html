@@ -172,6 +172,7 @@ details>summary.frow{padding:13px 16px}
   background:var(--card2);border-radius:10px;margin-right:12px}
 .kthumb.kosong{box-shadow:inset 0 0 0 1px var(--sep);background:transparent}
 .lbh{color:var(--textdim);opacity:.65}
+.satu{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cips{margin-top:3px;display:flex;gap:4px;flex-wrap:wrap}
 details.adm{margin:0 0 4px}
 details.adm>summary{cursor:pointer;list-style:none}
@@ -517,6 +518,10 @@ function pasangTempel(){
     ev.preventDefault();
     unggahBanyak(MODAL_KEG,f);});}
 function urlAman(u){return /^https:\/\//i.test(String(u||""));}
+function ringkasUrl(u){
+  var t=String(u||"").replace(/^https:\/\//i,"").replace(/^www\./i,"");
+  var q=t.indexOf("?"); if(q>0) t=t.slice(0,q);
+  return t.length>46 ? t.slice(0,30)+"\u2026"+t.slice(-12) : t;}
 function dokDi(kegId){return DOKUMEN.filter(function(d){return d.kegiatan_id===kegId;});}
 function tebakNama(u){
   if(/\/drive\/folders\//.test(u)) return "Folder Drive";
@@ -567,7 +572,7 @@ function dokHTML(kegId){
           ?'<a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">'+
              esc(x.nama||tebakNama(x.url))+"</a>"
           :'<b>'+esc(x.nama||"Link tidak aman")+'</b> <span class="chip w">bukan https</span>')+"</div>"+
-        '<div class="sb nm" style="word-break:break-all">'+esc(x.url)+"</div></div>"+
+        '<div class="sb satu">'+esc(ringkasUrl(x.url))+"</div></div>"+
         '<button class="kecil" data-aksi="dok-hapus" data-v="'+x.id+
           '" data-k="'+kegId+'">Hapus</button></div>';}).join("");
   } else {
@@ -920,11 +925,10 @@ function detailKegiatan(id){
       '<div class="sb nm">'+arr.map(function(a){return esc(a.nama);}).join(", ")+"</div></div></div>";}
   var h=(k.judul?'<div class="desc">'+esc(k.judul)+"</div>":"")+
     '<div class="sub" style="margin:0 0 14px">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+(k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
-    '<div class="list">'+
-      '<div class="cell static"><div class="tx"><div class="tl">Tier</div></div><span class="val">'+TIER[k.tier]+"</span></div>"+
-      '<div class="cell static"><div class="tx"><div class="tl">Beban</div></div><span class="val">'+BEBAN[k.tingkat_beban]+"</span></div>"+
-      '<div class="cell static"><div class="tx"><div class="tl">Skor jalan</div><div class="sb">per orang</div></div><span class="val">'+bulat(skorJalan(k))+"</span></div>"+
-    "</div>"+
+    '<div class="list"><div class="cell static"><div class="tx">'+
+      '<div class="tl">'+TIER[k.tier]+" \u00b7 beban "+BEBAN[k.tingkat_beban].toLowerCase()+"</div>"+
+      '<div class="sb">Skor jalan <b>'+bulat(skorJalan(k))+"</b> per orang</div>"+
+    "</div></div></div>"+
     (k.catatan?'<div class="sect">Catatan</div><div class="list"><div class="cell static"><div class="tx"><div class="sb nm">'+esc(k.catatan).replace(/\n/g,"<br>")+"</div></div></div></div>":"")+
     '<div class="sect">Yang jalan ('+o.length+')</div><div class="list">'+
     (o.length?(grp("Ketua",ket)+grp("Anggota",tim)+grp("TU",tu))
