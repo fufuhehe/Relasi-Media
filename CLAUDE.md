@@ -53,6 +53,9 @@ jangan jadi field wajib.**
 Anon key ditanam di frontend — memang untuk publik, itu bukan kebocoran.
 Keamanan datang dari RLS + pencabutan grant, bukan dari menyembunyikan key.
 
+**App dikunci sandi tim.** Semua baca lewat `keg_data(p_sandi)`; tidak ada tabel `keg_*`
+yang bisa dibaca anon langsung. Lihat bagian "Sandi tim" di bawah.
+
 ---
 
 ## Skema data
@@ -107,6 +110,34 @@ Menampilkan foto: bucket privat, jadi perlu signed URL —
 POST `/storage/v1/object/sign/bukti/{path}` body `{"expiresIn":3600}`. Balasannya
 `signedURL` berupa path RELATIF; URL lengkap = `SB_URL + "/storage/v1" + signedURL`.
 Hasilnya di-cache di `FOTO_URL`.
+
+### Sandi tim — kunci seluruh app
+Dua rahasia di `keg_config`: `sandi` (boleh melihat) dan `pin` (admin). `keg__boleh_lihat(p)`
+menerima keduanya, jadi admin cukup memakai PIN di layar gerbang — tidak perlu hafal dua.
+
+**Kenapa harus dikunci di database, bukan cuma layar login:** anon key ada di `index.html`
+yang repo-nya publik. Layar password yang hanya menyembunyikan tampilan bisa dilewati dengan
+menembak REST API langsung. Karena itu `21-sandi.sql` MENCABUT grant select anon dari semua
+tabel `keg_*` dan menghapus policy `keg_bukti_read` di storage. Satu-satunya pintu baca adalah
+`keg_data(p_sandi)` yang mengembalikan semuanya sekaligus sebagai jsonb (sekalian menghemat
+6 request jadi 1).
+
+Pemicunya: folder Drive yang dilink semuanya "anyone with link", jadi bocornya URL = bocornya
+dokumen. Foto kegiatan juga sudah menaikkan taraf kepekaan dari asumsi awal "cuma jadwal dan
+nama orang".
+
+**Penandatanganan URL foto pindah ke Edge Function** (`aksi:"sign"`, dijaga sandi), karena
+anon tidak lagi boleh membaca `storage.objects`. Jangan mengembalikan policy itu.
+
+`keg_config_public` TIDAK BOLEH memuat `pin` maupun `sandi` — kalau menambah rahasia baru di
+`keg_config`, masukkan juga ke daftar pengecualian view itu.
+
+**Frontend sengaja bisa jalan di dua dunia**: `muat()` mencoba `keg_data()` dulu; kalau
+fungsinya belum ada ia jatuh ke 6 panggilan REST lama (`muatLama()`), dan kalau sandinya salah
+ia memunculkan gerbang. Begitu juga penandatanganan foto: `BARU` menentukan lewat Edge Function
+atau langsung, dengan jalur langsung jatuh ke Edge Function kalau ditolak. Ini yang membuat
+urutan deploy tidak bisa salah. Ada tes untuk ketiga keadaan — jangan sederhanakan tanpa
+menjalankannya.
 
 ### Link dokumen & folder Drive — admin only
 `keg_dokumen` TIDAK boleh dibaca anon: RLS aktif tanpa policy select dan semua grant dicabut,

@@ -173,6 +173,7 @@ var IKON_LINK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 var BULAN_BUKA=null;
 var ADMIN_BUKA={};
 var MODAL_KEG=null;
+var SANDI="", BARU=false, GERBANG=false;
 var LB=null;
 var DOKUMEN=[];
 var TAB="catat", PIN=null, FORM=null, MODAL=null;
@@ -283,8 +284,12 @@ function rpc(n,a){
     .then(function(r){return r.text().then(function(t){
       if(!r.ok){var m=t;try{m=JSON.parse(t).message||t;}catch(e){}throw new Error(m);}
       try{return JSON.parse(t);}catch(e){return t;}});});}
-function muat(){
-  stat("Memuat\u2026");
+function lanjutMuat(){
+  if(!PIN) DOKUMEN=[];
+  return (PIN?muatDokumen():Promise.resolve()).then(function(){
+    stat(DB.kegiatan.length+" catatan kegiatan");
+    render();});}
+function muatLama(){
   return Promise.all([
     ambil("keg_anggota?select=*&order=kategori,urutan,nama"),
     ambil("keg_jenis?select=*&order=urutan,nama"),
@@ -296,13 +301,25 @@ function muat(){
     DB.anggota=r[0]; DB.jenis=r[1]; DB.kegiatan=r[2]; DB.penugasan=r[3];
     DB.config={}; r[4].forEach(function(c){DB.config[c.kunci]=c.nilai;});
     DB.foto=r[5]||[];
-    if(!PIN) DOKUMEN=[];
-    return (PIN?muatDokumen():Promise.resolve()).then(function(){
-      stat(DB.kegiatan.length+" catatan kegiatan");
-      render();});
+    return lanjutMuat();});}
+function muat(){
+  stat("Memuat\u2026");
+  return rpc("keg_data",{p_sandi:SANDI||PIN||""}).then(function(d){
+    BARU=true; GERBANG=false;
+    if(!SANDI&&PIN) SANDI=PIN;
+    DB.anggota=d.anggota||[]; DB.jenis=d.jenis||[]; DB.kegiatan=d.kegiatan||[];
+    DB.penugasan=d.penugasan||[]; DB.foto=d.foto||[]; DB.config=d.config||{};
+    return lanjutMuat();
   }).catch(function(e){
-    stat("Error: "+e.message);
-    $("#isi").innerHTML='<div class="kosong">Gagal memuat.<br>'+esc(e.message)+"</div>";});}
+    var m=String((e&&e.message)||e||"");
+    if(/[Ss]andi salah/.test(m)){
+      GERBANG=true; stat("Perlu sandi"); render(); return;}
+    if(/keg_data|schema cache|does not exist|Not Found|404/i.test(m)) return muatLama();
+    throw e;
+  }).catch(function(e){
+    var m=String((e&&e.message)||e||"");
+    stat("Error: "+m);
+    $("#isi").innerHTML='<div class="kosong">Gagal memuat.<br>'+esc(m)+"</div>";});}
 
 /* ---------- foto ---------- */
 function kecilkanFoto(file){
@@ -325,29 +342,38 @@ function kecilkanFoto(file){
     };
     fr.readAsDataURL(file);
   });}
+function simpanTtd(path,u){
+  if(!path||!u) return;
+  FOTO_URL[path]=(String(u).indexOf("http")===0)?u:SB_URL+"/storage/v1"+u;}
+function ttdLewatEF(blok){
+  return fetch(SB_URL+"/functions/v1/bukti-upload",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({pin:SANDI||PIN||"",aksi:"sign",paths:blok})})
+    .then(function(r){return r.text().then(function(t){
+      var d={}; try{d=JSON.parse(t);}catch(e){}
+      if(!r.ok||d.error) throw new Error(d.error||("tanda tangan gagal ("+r.status+")"));
+      (d.hasil||[]).forEach(function(x){
+        if(x&&!x.error) simpanTtd(x.path,x.signedUrl||x.signedURL);});});});}
+function ttdLangsung(blok){
+  return fetch(SB_URL+"/storage/v1/object/sign/bukti",
+      {method:"POST",headers:HDR,body:JSON.stringify({expiresIn:3600,paths:blok})})
+    .then(function(r){ if(!r.ok) throw new Error("gagal ("+r.status+")"); return r.json();})
+    .then(function(d){
+      (d||[]).forEach(function(x){
+        if(x&&x.signedURL&&!x.error) simpanTtd(x.path,x.signedURL);});});}
 function urlFoto(path){
   if(FOTO_URL[path]) return Promise.resolve(FOTO_URL[path]);
-  return fetch(SB_URL+"/storage/v1/object/sign/bukti/"+path,
-      {method:"POST",headers:HDR,body:JSON.stringify({expiresIn:3600})})
-    .then(function(r){
-      if(!r.ok) throw new Error("foto tidak bisa dibuka ("+r.status+")");
-      return r.json();})
-    .then(function(d){
-      var u=SB_URL+"/storage/v1"+d.signedURL;
-      FOTO_URL[path]=u; return u;});}
+  return urlFotoBanyak([path]).then(function(){
+    if(FOTO_URL[path]) return FOTO_URL[path];
+    throw new Error("foto tidak bisa dibuka");});}
 function urlFotoBanyak(paths){
   var perlu=paths.filter(function(p){return p&&!FOTO_URL[p];});
   if(!perlu.length) return Promise.resolve();
   var tugas=[];
   for(var i=0;i<perlu.length;i+=100) tugas.push(perlu.slice(i,i+100));
   return Promise.all(tugas.map(function(blok){
-    return fetch(SB_URL+"/storage/v1/object/sign/bukti",
-        {method:"POST",headers:HDR,body:JSON.stringify({expiresIn:3600,paths:blok})})
-      .then(function(r){ if(!r.ok) throw new Error("gagal ("+r.status+")"); return r.json();})
-      .then(function(d){
-        (d||[]).forEach(function(x){
-          if(x&&x.signedURL&&!x.error) FOTO_URL[x.path]=SB_URL+"/storage/v1"+x.signedURL;});
-      });
+    return BARU ? ttdLewatEF(blok)
+                : ttdLangsung(blok).catch(function(){return ttdLewatEF(blok);});
   })).catch(function(){});}
 function pasangFoto(){
   var arr=document.querySelectorAll("img[data-fpath]:not([data-siap])");
@@ -562,9 +588,20 @@ function ringkasHTML(){
   return "<b>"+arr.length+"</b> kegiatan"+(j?" · "+esc(j.nama):"")+
     (blm?' · <b>'+blm+"</b> belum bertanggal":"")+
     (tanpaFoto?' · <b>'+tanpaFoto+"</b> belum ada foto":"");}
+function viewGerbang(){
+  return '<fieldset class="grp"><legend>Perlu sandi</legend>'+
+    '<div class="meta">Catatan kegiatan tim. Masukkan sandi untuk melihat.</div>'+
+    "<label>Sandi</label><input type=password id=inpSandi>"+
+    '<div class="aksi"><button data-aksi="masuk-sandi">Masuk</button></div>'+
+    '<div class="meta" style="margin-top:8px">Admin cukup pakai PIN.</div></fieldset>';}
 function render(){
   var nm=DB.config.nama_tim||"Catatan Kegiatan Tim";
   $("#judul").textContent=nm; document.title=nm;
+  if(GERBANG){
+    $("#ringkas").innerHTML="Terkunci";
+    $("#tabs").innerHTML="";
+    $("#isi").innerHTML=viewGerbang();
+    gambarLapis(); return;}
   $("#ringkas").innerHTML=ringkasHTML();
   var t=[["catat","Kegiatan"],["orang","Tim"],["admin",PIN?"Admin \u2713":"Admin"]];
   $("#tabs").innerHTML=t.map(function(x){
@@ -742,6 +779,7 @@ function viewAdmin(){
   h+=adm("skor","Pengaturan skor &amp; PIN",
     c.map(function(x){return "<label>"+x[1]+'</label><input data-cfg="'+x[0]+'" type="'+x[2]+
       '" step="0.1" value="'+esc(DB.config[x[0]]||"")+'">';}).join("")+
+    '<label>Sandi tim baru (kosongkan kalau tak diubah)</label><input data-cfg="sandi" type=text value="">'+
     '<label>PIN baru (kosongkan kalau tak diubah)</label><input data-cfg="pin" type=text inputmode=numeric value="">'+
     '<div class="aksi"><button data-aksi="simpan-cfg">Simpan pengaturan</button></div>');
   return h;}
@@ -1085,6 +1123,7 @@ document.addEventListener("click",function(ev){
       .then(function(){stat("Foto dihapus"); detailKegiatan(kidH);})
       .catch(function(e){stat("Gagal: "+e.message);});
     return;}
+  if(a==="masuk-sandi"){masukSandi();return;}
   if(a==="login"){
     var p=$("#inpPin").value.trim(); if(!p){stat("Isi PIN dulu");return;}
     stat("Memeriksa\u2026");
@@ -1131,10 +1170,11 @@ document.addEventListener("click",function(ev){
       .then(function(){tutupModal();return muat();}).then(function(){stat("Dihapus");})
       .catch(function(e){stat("Gagal: "+e.message);});return;}
   if(a==="simpan-cfg"){
-    var tugas=[], pinBaru=null;
+    var tugas=[], pinBaru=null, sandiBaru=null;
     document.querySelectorAll("[data-cfg]").forEach(function(i){
       var k=i.getAttribute("data-cfg"), val=i.value.trim();
       if(k==="pin"){if(val){tugas.push(["pin",val]);pinBaru=val;}return;}
+      if(k==="sandi"){if(val){tugas.push(["sandi",val]);sandiBaru=val;}return;}
       if(val!==""&&val!==DB.config[k]) tugas.push([k,val]);});
     if(!tugas.length){stat("Tidak ada perubahan");return;}
     stat("Menyimpan\u2026");
@@ -1142,11 +1182,28 @@ document.addEventListener("click",function(ev){
       return rpc("keg_set_config",{p_pin:PIN,p_kunci:x[0],p_nilai:x[1]});});},Promise.resolve())
       .then(function(){
         if(pinBaru){PIN=pinBaru;try{localStorage.setItem("keg_pin",pinBaru);}catch(e){}}
+        if(sandiBaru){SANDI=sandiBaru;try{localStorage.setItem("keg_sandi",sandiBaru);}catch(e){}}
+        else if(pinBaru&&SANDI===PIN) SANDI=pinBaru;
         return muat();})
       .then(function(){stat("Pengaturan tersimpan");})
       .catch(function(e){stat("Gagal: "+e.message);});return;}
 });
 
+function masukSandi(){
+  var el=$("#inpSandi"); if(!el) return;
+  var sp=el.value.trim();
+  if(!sp){stat("Isi sandi dulu");return;}
+  stat("Memeriksa\u2026");
+  rpc("keg_cek_sandi",{p_sandi:sp}).then(function(ok){
+    if(ok===true){
+      SANDI=sp; try{localStorage.setItem("keg_sandi",sp);}catch(e){}
+      GERBANG=false; muat();
+    } else stat("Sandi salah");
+  }).catch(function(e){stat("Gagal: "+e.message);});}
+document.addEventListener("keydown",function(ev){
+  if(ev.key!=="Enter") return;
+  var t=ev.target; if(!t||!t.id) return;
+  if(t.id==="inpSandi"){ev.preventDefault();masukSandi();}});
 document.addEventListener("change",function(ev){
   var el=ev.target;
   if(!el.getAttribute) return;
@@ -1171,6 +1228,7 @@ document.addEventListener("change",function(ev){
     if(!tm&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches) tm="gelap";
     if(tm) document.documentElement.setAttribute("data-tema",tm);
     var sp=localStorage.getItem("keg_pin"); if(sp) PIN=sp;
+    var ss=localStorage.getItem("keg_sandi"); if(ss) SANDI=ss;
   }catch(e){}
   try{sessionStorage.removeItem("keg_alih");}catch(e){}
   pasangTempel();
