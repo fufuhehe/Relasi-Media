@@ -425,9 +425,14 @@ Target sekitar 6-7 kartu per layar HP, rapat tapi masih nyaman diketuk. Aturan y
   `Rp 516rb/org · 28 Okt · Aston Bintaro`. Taruh di awal, jangan di ujung:
   tiap kartu mulai di x yang sama sehingga angkanya jadi kolom rata kiri yang gampang
   disusuri waktu mencocokkan dengan daftar SPJ, sedangkan di ujung lokasi yang panjang
-  akan mendorongnya keluar layar. Akhiran `/org` wajib — angkanya per orang, bukan total
-  satu kegiatan. Tarif yang belum ada ditulis **`Rp ?`** dan yang belum lengkap diberi
-  **`?`** di belakang, bukan diam-diam nol.
+  akan mendorongnya keluar layar. Akhiran `/org` wajib di daftar utama — angkanya per orang,
+  bukan total satu kegiatan. Tarif yang belum ada ditulis **`Rp ?`** dan yang belum lengkap
+  diberi **`?`** di belakang, bukan diam-diam nol.
+- **Riwayat di layar orang** memakai `uangRingkas(k,false)` — akhiran `/org` dibuang karena
+  di sana semuanya memang punya orang itu, jadi akhiran itu cuma bising. Baris riwayat
+  sengaja TETAP menulis tier walau membuat ~3 dari 10 baris membungkus: tier yang
+  menjelaskan kenapa angkanya segitu, dan riwayat adalah daftar panjang yang digulung, jadi
+  ongkos membungkus di sini lebih murah daripada di daftar utama.
 - **Slot foto SELALU ada** (46px), terisi thumbnail atau `kthumb kosong` yang transparan
   dengan garis tipis. Gunanya dua: tepi kiri teks jadi rata (tanpa ini daftarnya bergerigi
   dan capek dibaca), dan slot kosong itu SENDIRI yang menandakan belum ada foto.
