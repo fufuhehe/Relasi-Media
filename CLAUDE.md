@@ -448,6 +448,19 @@ Target sekitar 6-7 kartu per layar HP, rapat tapi masih nyaman diketuk. Aturan y
 - Layar detail varian Modern menaruh tier, beban, dan skor jalan dalam SATU baris ringkas,
   bukan tiga baris `.cell` terpisah — supaya kerapatannya setara varian Jadul.
 
+### Layar orang — rekap per jenis kegiatan
+`perJenis(daftar)` memecah catatan satu orang per jenis kegiatan (berapa kali, berapa hari,
+dapat berapa) dan `jenisHTML()` menggambarnya sebagai **batang horizontal** memakai `.bar`
+yang sudah dipakai tab Tim — **bukan chart library**. Alasannya: satu bahasa visual untuk
+seluruh app, tetap Rp 0, tetap jalan offline, dan tidak perlu build. Jangan menambah
+Chart.js atau sejenisnya untuk ini.
+
+Panjang batang mengikuti **rupiah**, diurut dari yang terbesar, dan jumlah kali ditulis
+sebagai teks (`8× · Rp 8,4jt`) supaya pertanyaan "paling sering di jenis apa" tetap
+terjawab tanpa batang kedua. Ada keterangan satu baris di bawahnya yang menyebut batangnya
+mengikuti apa — jangan dihapus, tanpa itu batang 6× yang panjang di sebelah 8× yang pendek
+membingungkan. Tes: `t18.js`.
+
 ### Modal — title bar NEMPEL, aksi utama di atas
 Modal digulung sebagai satu blok (`.tutup` yang menggulung di Jadul, `.modal` sendiri di
 Modern), jadi apa pun yang ditaruh di dasar body akan **ketinggalan** begitu isinya panjang —

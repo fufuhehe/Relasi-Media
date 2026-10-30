@@ -416,6 +416,17 @@ function rinciJalan(k){
   return {uh:uh,transport:transport,total:uh+transport,hn:hn,hm:hm,
           lengkap:lengkap,tarifAda:true,kota:!!kt,asal:asal};}
 function skorJalan(k){return rinciJalan(k).total;}
+function perJenis(daftar){
+  /* Rekap satu orang dipecah per jenis kegiatan: berapa kali dan dapat
+     berapa. Diurut dari yang paling besar duitnya. */
+  var peta={}, urut=[];
+  (daftar||[]).forEach(function(x){
+    var j=x.k.jenis_id||0;
+    if(!peta[j]){peta[j]={id:j,nama:namaJenis(j),n:0,jalan:0,hari:0};urut.push(peta[j]);}
+    peta[j].n++; peta[j].jalan+=skorJalan(x.k); peta[j].hari+=Math.max(1,num(x.k.jumlah_hari,1));});
+  urut.sort(function(a,b){return b.jalan-a.jalan||b.n-a.n;});
+  return urut;}
+function namaJenis(id){var j=cari(DB.jenis,id);return j?j.nama:"(kegiatan dihapus)";}
 function uangRingkas(k){
   /* Ditaruh di AWAL baris meta, bukan di ujung: karena tiap kartu mulai di
      x yang sama, angkanya jadi satu kolom yang gampang disusuri waktu
@@ -1152,12 +1163,26 @@ function detailOrang(id){
       '<div class="cell static"><div class="tx"><div class="tl">Luar kota PP</div></div><span class="val">'+t.luar_pp+"\u00d7</span></div>"+
       '<div class="cell static"><div class="tx"><div class="tl">Luar kota nginep</div></div><span class="val">'+t.luar_inap+"\u00d7</span></div>"+
     "</div>"+
+    jenisHTML(r?r.daftar:[])+
     '<div class="sect">Riwayat</div>'+
     (d.length?'<div class="list">'+d.map(function(x){
       return '<div class="cell" data-aksi="detail" data-v="'+x.k.id+'"><div class="tx"><div class="tl">'+esc(namaKeg(x.k))+(x.ketua?' <span class="chip">ketua</span>':"")+
         '</div><div class="sb">'+tglTeks(x.k)+(x.k.lokasi?" \u00b7 "+esc(x.k.lokasi):"")+" \u00b7 "+TIERP[x.k.tier]+'</div></div><span class="chev"></span></div>';}).join("")+"</div>"
       :'<div class="kosong">Belum ada.</div>');
   bukaModal(a.nama,h);}
+function jenisHTML(daftar){
+  var baris=perJenis(daftar);
+  if(!baris.length) return "";
+  var maks=1; baris.forEach(function(x){if(x.jalan>maks) maks=x.jalan;});
+  return '<div class="sect">Per jenis kegiatan</div><div class="list">'+
+    baris.map(function(x){
+      return '<div class="cell static"><div class="tx">'+
+        '<div style="display:flex;gap:8px;align-items:baseline">'+
+          '<span class="tl" style="flex:1;min-width:0">'+esc(x.nama)+"</span>"+
+          '<span class="sb" style="flex:none">'+x.n+"\u00d7 \u00b7 <b>"+rupiah(x.jalan)+"</b></span></div>"+
+        '<div class="bar" style="margin-top:5px"><i class="a" style="width:'+
+          (x.jalan/maks*100).toFixed(0)+'%"></i></div></div></div>';}).join("")+
+    '</div><div class="note" style="margin:5px 6px 0">Panjang batang mengikuti rupiahnya, bukan jumlah kalinya.</div>';}
 
 /* ---------- salin / csv ---------- */
 function salin(t,p){
