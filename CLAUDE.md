@@ -248,10 +248,13 @@ terdaftar jatuh ke jalur 3 — tambahkan lewat Admin → Tarif transport → Tam
 | angka | lumpsum PP | dipakai apa adanya |
 
 At-cost nol itu disengaja dan sejalan dengan aturan hotel/tiket: yang diganti kuitansi tidak
-masuk kantong, jadi bukan rezeki. Di tempat Ibot, **Serang / Karawang / Bandung dibayar
-at-cost kalau bawa mobil sendiri**. Karena itu `keg_set_transport_kota` MENYIMPAN tarif 0
-(tidak lagi memperlakukannya sebagai perintah hapus); hapus baris punya fungsi sendiri,
-`keg_hapus_transport_kota`.
+masuk kantong, jadi bukan rezeki. Di tempat Ibot, **Karawang dan Bandung selalu at-cost —
+apa pun kendaraannya, naik kereta pun tetap at-cost**, bukan cuma kalau bawa mobil sendiri.
+**Serang** juga diisi 0 atas dasar SPD 10/05/2026; kalau ternyata ada yang lumpsum, ubah dari
+Admin. Ketiganya sudah ikut terisi di `24-transport-kota.sql`.
+
+Karena tarif 0 punya arti, `keg_set_transport_kota` MENYIMPAN 0 (tidak lagi memperlakukannya
+sebagai perintah hapus); hapus baris punya fungsi sendiri, `keg_hapus_transport_kota`.
 
 **2. Dalam kota** — `transport_dalam`, Jakarta 170rb. Ini yang bikin dinas Jakarta kecil:
 homebase-nya Jakarta, jadi tidak ada taksi dua ujung.

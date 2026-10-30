@@ -31,7 +31,13 @@ insert into keg_transport_kota (kota, tarif) values
   ('bogor',             540000),   -- Kota & Kab. Bogor, 9 catatan
   ('depok',             496000),   -- 7 catatan
   ('bekasi',            512000),   -- 2 catatan
-  ('tangerang selatan', 516000)    -- 5 catatan
+  ('tangerang selatan', 516000),   -- 5 catatan
+  -- Tarif 0 = AT-COST. Bensin, tol, atau tiket kereta diganti sesuai
+  -- kuitansi, jadi tidak ada yang masuk kantong -- sama perlakuannya
+  -- dengan hotel dan tiket pesawat. Bukan "belum diisi".
+  ('karawang',               0),   -- at-cost, apa pun kendaraannya
+  ('bandung',                0),   -- at-cost, apa pun kendaraannya
+  ('serang',                 0)    -- at-cost (SPD 10/05/2026)
 on conflict (kota) do nothing;
 
 -- Dikunci sama seperti tabel keg_* lain: anon tidak boleh baca langsung.
