@@ -448,7 +448,7 @@ function rataLain(id){
   if(!n) return {semua:0,jenis:{},n:0};
   var jen={}; for(var k in peta) jen[k]=peta[k]/n;
   return {semua:total/n,jenis:jen,n:n};}
-function uangRingkas(k){
+function uangRingkas(k,perOrang){
   /* Ditaruh di AWAL baris meta, bukan di ujung: karena tiap kartu mulai di
      x yang sama, angkanya jadi satu kolom yang gampang disusuri waktu
      mencocokkan dengan daftar SPJ. Kalau ditaruh di ujung, lokasi yang
@@ -456,7 +456,7 @@ function uangRingkas(k){
   var r=rinciJalan(k);
   if(!r.tarifAda) return '<b class="duit" title="tarif provinsi belum ada">Rp ?</b>';
   return '<b class="duit"'+(r.lengkap?"":' title="tarif transport belum diisi"')+">"+
-    rupiah(r.total)+"/org"+(r.lengkap?"":"?")+"</b>";}
+    rupiah(r.total)+(perOrang===false?"":"/org")+(r.lengkap?"":"?")+"</b>";}
 function bawaanHariMeeting(j,hari){
   /* Jenis yang ditandai paket meeting mengisi 1 hari secara bawaan, bukan
      seluruh durasi: biasanya cuma salah satu harinya yang paket, sisanya
@@ -1191,7 +1191,8 @@ function detailOrang(id){
     '<div class="sect">Riwayat</div>'+
     (d.length?'<div class="list">'+d.map(function(x){
       return '<div class="cell" data-aksi="detail" data-v="'+x.k.id+'"><div class="tx"><div class="tl">'+esc(namaKeg(x.k))+(x.ketua?' <span class="chip">ketua</span>':"")+
-        '</div><div class="sb">'+tglTeks(x.k)+(x.k.lokasi?" \u00b7 "+esc(x.k.lokasi):"")+" \u00b7 "+TIERP[x.k.tier]+'</div></div><span class="chev"></span></div>';}).join("")+"</div>"
+        '</div><div class="sb">'+uangRingkas(x.k,false)+" \u00b7 "+tglTeks(x.k)+
+        " \u00b7 "+TIERP[x.k.tier]+(x.k.lokasi?" \u00b7 "+esc(x.k.lokasi):"")+'</div></div><span class="chev"></span></div>';}).join("")+"</div>"
       :'<div class="kosong">Belum ada.</div>');
   bukaModal(a.nama,h);}
 function banding(nilai,rata){

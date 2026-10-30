@@ -127,5 +127,14 @@ console.log('--- muncul di layar orang ---');
 M.setPin('1234'); M.detailOrang(7);
 cek('baris rata-rata di atas ada', OUT.indexOf('anggota lain')>=0, true);
 
+console.log('--- riwayat menulis rupiah per kegiatan ---');
+var riw=OUT.slice(OUT.indexOf('Riwayat'));
+cek('tiap baris riwayat punya angka', (riw.match(/class="duit"/g)||[]).length, 6);
+cek('tanpa akhiran /org (di sini semuanya memang punya dia)',
+  riw.indexOf('/org')>=0, false);
+cek('tier tetap ditulis', /Dlm kota|Luar PP|Luar nginep/.test(riw), true);
+cek('uangRingkas masih pakai /org di daftar utama',
+  M.jenisHTML([]).indexOf('/org')>=0, false);
+
 console.log(gagal?'\n>>> '+gagal+' TES GAGAL':'\n>>> SEMUA TES LULUS');
 process.exit(gagal?1:0);
