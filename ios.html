@@ -276,7 +276,7 @@ var SB_URL="https://wwgqgsjyaodxfuhjwksj.supabase.co";
 var SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3Z3Fnc2p5YW9keGZ1aGp3a3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyNzU3ODcsImV4cCI6MjEwMTg1MTc4N30.PfrrLh0TWXT1mvI_ObpDE9iuKn-KhzDiSoCVr3qI5Vo";
 var HDR={apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json"};
 
-var DB={anggota:[],jenis:[],kegiatan:[],penugasan:[],foto:[],config:{}};
+var DB={anggota:[],jenis:[],kegiatan:[],penugasan:[],foto:[],sbm:[],config:{}};
 var FOTO_URL={};
 var IKON_LINK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10 13.6a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 1 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.4a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 1 0 5.7 5.7l1.6-1.6"/></svg>';
 var BULAN_BUKA=null;
@@ -306,6 +306,14 @@ function stat(m){var e=$("#toast"); if(!e) return; e.textContent=m; e.classList.
 function num(v,d){var n=parseFloat(v); return isFinite(n)?n:d;}
 function cfg(k,d){return num(DB.config[k],d);}
 function bulat(n){return Math.round(n*10)/10;}
+function rupiah(n){
+  n=Math.round(num(n,0));
+  if(n<=0) return "Rp 0";
+  if(n>=1000000){
+    var j=n/1000000;
+    var teks=(j>=10)?String(Math.round(j)):String(Math.round(j*10)/10).replace(".",",");
+    return "Rp "+teks+"jt";}
+  return "Rp "+Math.round(n/1000)+"rb";}
 function iso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+
   "-"+String(d.getDate()).padStart(2,"0");}
 function hariIni(){return iso(new Date());}
@@ -349,12 +357,24 @@ function namaKeg(k){
   return k.judul?n+" \u2014 "+k.judul:n;}
 
 /* ---------- skor ---------- */
-function skorJalan(k){
-  var h=Math.max(1,num(k.jumlah_hari,1));
-  if(k.tier==="dalam_kota") return cfg("poin_dalam_kota",1)*h;
-  var s=cfg("poin_luar_hari",1.8)*h;                      // harian luar kota, per hari
-  if(k.tier==="luar_inap") s+=cfg("poin_nginap_malam",1.5)*(h-1);  // penginapan, per malam
-  return s;}
+function provKeg(k){
+  return (k&&k.provinsi)||DB.config.provinsi_basis||"DKI Jakarta";}
+function tarif(nama){
+  for(var i=0;i<DB.sbm.length;i++) if(DB.sbm[i].provinsi===nama) return DB.sbm[i];
+  return null;}
+function rinciJalan(k){
+  var t=tarif(provKeg(k));
+  var hari=Math.max(1,num(k.jumlah_hari,1));
+  var hm=Math.min(Math.max(0,num(k.hari_meeting,0)),hari), hn=hari-hm;
+  var luar=(k.tier!=="dalam_kota"), nginap=(k.tier==="luar_inap");
+  if(!t) return {uh:0,transport:0,total:0,hn:hn,hm:hm,lengkap:false,tarifAda:false};
+  var uh=hn*num(luar?t.uang_harian_luar:t.uang_harian_dalam,0)
+        +hm*(nginap?cfg("uang_saku_fullboard",130000):0);
+  var satuan=num(luar?t.transport_luar:t.transport_dalam,0);
+  var transport=nginap?satuan:satuan*hari;
+  return {uh:uh,transport:transport,total:uh+transport,hn:hn,hm:hm,
+          lengkap:satuan>0,tarifAda:true};}
+function skorJalan(k){return rinciJalan(k).total;}
 function skorBeban(k,ketua){
   var hari=Math.max(1,num(k.jumlah_hari,1));
   var kerja=(k.tier==="luar_inap")?Math.max(1,hari-2):hari;   // nginap: buang hari pergi & pulang
@@ -428,7 +448,8 @@ function muat(){
     BARU=true; GERBANG=false;
     if(!SANDI&&PIN) SANDI=PIN;
     DB.anggota=d.anggota||[]; DB.jenis=d.jenis||[]; DB.kegiatan=d.kegiatan||[];
-    DB.penugasan=d.penugasan||[]; DB.foto=d.foto||[]; DB.config=d.config||{};
+    DB.penugasan=d.penugasan||[]; DB.foto=d.foto||[];
+    DB.sbm=d.sbm||[]; DB.config=d.config||{};
     return lanjutMuat();
   }).catch(function(e){
     var m=String((e&&e.message)||e||"");
@@ -797,24 +818,30 @@ function viewCatat(){
   return h;}
 
 function caraHitung(){
-  var pk=cfg("poin_dalam_kota",1), pp=cfg("poin_luar_hari",1.8),
-      pm=cfg("poin_nginap_malam",1.5), fk=cfg("faktor_ketua",1.2);
-  return '<p>Ada <b>dua skor terpisah</b>, sengaja tidak digabung — biar keliatan siapa yang kluntingnya kecil tapi bebannya berat.</p>'+
-    '<fieldset class="grp"><legend>Skor jalan (proxy klunting)</legend>'+
-      '<div class="meta">Sama untuk semua peserta satu kegiatan. Makin sering &amp; makin jauh, makin gede.</div>'+
-      "<table><tr><td>Dalam kota</td><td class=n>"+pk+" × hari</td></tr>"+
-      "<tr><td>Luar kota PP</td><td class=n>"+pp+" × hari</td></tr>"+
-      "<tr><td>Luar kota nginap</td><td class=n>"+pp+" × hari + "+pm+" × (hari−1)</td></tr></table>"+
-      '<div class="meta" style="margin-top:6px">Perbandingannya diambil dari uang harian nyata '+
-      "(luar kota \u2248 1,8\u00d7 dalam kota) lalu ditambah penginapan per malam. "+
-      "Satuannya tetap poin, bukan rupiah \u2014 nominalnya beda-beda tiap kota.</div></fieldset>"+
-    '<fieldset class="grp"><legend>Skor beban (proxy capek)</legend>'+
+  var fk=cfg("faktor_ketua",1.2), fb=cfg("uang_saku_fullboard",130000);
+  var t=tarif(DB.config.provinsi_basis||"DKI Jakarta")||{};
+  return '<p>Ada <b>dua ukuran terpisah</b>, sengaja tidak digabung — biar keliatan siapa yang dapetnya kecil tapi bebannya berat.</p>'+
+    '<fieldset class="grp"><legend>Yang diterima (uang harian + transport)</legend>'+
+      '<div class="meta">Mengikuti SBM Kemenkeu (PMK 32/2025, TA 2026). Hanya komponen yang masuk kantong — hotel dan tiket tidak dihitung karena diganti sesuai kuitansi.</div>'+
+      "<table>"+
+      "<tr><td>Uang harian, hari biasa</td><td class=n>tarif provinsi × hari</td></tr>"+
+      "<tr><td>Uang harian, hari paket meeting</td><td class=n>"+rupiah(fb)+" kalau menginap, selain itu 0</td></tr>"+
+      "<tr><td>Transport, menginap</td><td class=n>sekali PP</td></tr>"+
+      "<tr><td>Transport, pulang hari</td><td class=n>per hari</td></tr></table>"+
+      '<div class="meta" style="margin-top:6px">Contoh '+esc(DB.config.provinsi_basis||"DKI Jakarta")+
+      ": uang harian luar kota "+rupiah(num(t.uang_harian_luar,0))+
+      ", dalam kota "+rupiah(num(t.uang_harian_dalam,0))+
+      ", transport dalam kota "+rupiah(num(t.transport_dalam,0))+" PP."+
+      "</div>"+
+      '<div class="meta" style="margin-top:6px"><b>Ini perkiraan, bukan angka SPJ.</b> '+
+      "SBM itu batas tertinggi; realisasi bisa lebih rendah. Dipakai buat membandingkan antar orang, bukan buat laporan keuangan.</div></fieldset>"+
+    '<fieldset class="grp"><legend>Skor beban (proxy capek) — tetap poin</legend>'+
       "<p><b>hari kerja × tingkat beban × faktor peran</b></p>"+
       '<div class="meta">• Hari kerja = jumlah hari. Khusus <b>nginap</b> dikurangi 2 (hari pergi &amp; pulang dianggap perjalanan, bukan kerja).<br>'+
       "• Tingkat beban: Ringan=1, Sedang=2, Berat=3.<br>"+
       "• Faktor peran: ketua ×"+fk+", anggota ×1.</div></fieldset>"+
     '<fieldset class="grp"><legend>Soal urutan</legend>'+
-      '<div class="meta">Daftar diurut dari <b>skor yang dipilih</b> (Jalan / Beban / Kali), <b>bukan</b> dari berapa kali jalan. Sering jalan belum tentu klunting gede — tergantung tujuannya (nginap poinnya paling besar).</div></fieldset>'+
+      '<div class="meta">Daftar diurut dari <b>skor yang dipilih</b> (Jalan / Beban / Kali), <b>bukan</b> dari berapa kali jalan. Sering jalan belum tentu dapetnya gede \u2014 tergantung tujuan dan apakah kegiatannya paket meeting.</div></fieldset>'+
     '<div class="aksi"><button data-aksi="tutup">Tutup</button></div>';}
 
 function viewOrang(){
@@ -850,7 +877,7 @@ function viewOrang(){
           '<div class="prow-top"><b>'+esc(x.nama)+"</b>"+(flag?' <span class="chip w">klunting ngepas, beban tinggi</span>':"")+
             '<span class="kali">'+x.n+'×</span></div>'+
           '<div class="prow-bars">'+
-            '<div class="mb"><span class="mbl">Jalan</span><div class="mini"><i class="a" style="width:'+(x.jalan/mJ*100).toFixed(0)+'%"></i></div><span class="mbv">'+bulat(x.jalan)+"</span></div>"+
+            '<div class="mb"><span class="mbl">Jalan</span><div class="mini"><i class="a" style="width:'+(x.jalan/mJ*100).toFixed(0)+'%"></i></div><span class="mbv">'+rupiah(x.jalan)+"</span></div>"+
             '<div class="mb"><span class="mbl">Beban</span><div class="mini"><i class="b" style="width:'+(x.beban/mB*100).toFixed(0)+'%"></i></div><span class="mbv">'+bulat(x.beban)+"</span></div>"+
           "</div>"+
           '<div class="meta comp">'+x.tier.dalam_kota+" · "+x.tier.luar_pp+" · "+x.tier.luar_inap+
@@ -860,7 +887,7 @@ function viewOrang(){
         (PERIODE.jenis?"Kali = berapa kali ikut kegiatan ini. ":"")+
         (URUT==="beban"?"Urut dari beban terbesar.":
          URUT==="kali"?"Urut dari paling sering jalan terbanyak.":
-         "Urut dari skor jalan (klunting) terbesar.")+
+         "Urut dari yang paling besar diterimanya.")+
         " Ketuk untuk riwayat.</div>";});
   return h||'<div class="kosong">Belum ada anggota.</div>';}
 
@@ -884,6 +911,16 @@ function viewAdmin(){
       :'<div class="cell static"><div class="tx"><div class="sb">Kosong.</div></div></div>')+"</div>"+
     '<div class="aksi" style="margin-top:10px"><button data-aksi="jenis-baru">+ Tambah kegiatan</button></div>',
     DB.jenis.length);
+  h+=adm("sbm","Tarif transport",
+    '<div class="note" style="margin:0 6px 7px">Uang harian sudah terisi dari SBM. Yang perlu kamu isi cuma transport.</div>'+
+    '<div class="list">'+DB.sbm.map(function(x){
+      var kosong=!num(x.transport_dalam,0)&&!num(x.transport_luar,0);
+      return '<div class="cell"><div class="tx"><div class="tl">'+esc(x.provinsi)+"</div>"+
+        '<div class="sb">dalam '+rupiah(num(x.transport_dalam,0))+
+        " \u00b7 luar "+rupiah(num(x.transport_luar,0))+
+        (kosong?' \u00b7 belum diisi':"")+"</div></div>"+
+        '<button class="kecil" data-aksi="sbm-edit" data-v="'+esc(x.provinsi)+'">Ubah</button></div>';}).join("")+"</div>", DB.sbm.filter(function(x){
+      return num(x.transport_dalam,0)||num(x.transport_luar,0);}).length+"/"+DB.sbm.length);
   h+=adm("orang","Orang",'<div class="list">'+
     DB.anggota.map(function(a){
       return '<div class="cell"><div class="tx"><div class="tl">'+esc(a.nama)+"</div>"+
@@ -940,12 +977,20 @@ function formCatat(){
     '<div class="ffield"><label>Jumlah hari</label><input data-f=jumlah_hari type=number min=1 max=60 value="'+num(f.jumlah_hari,1)+'"></div>'+
     "</div>"+'<div class="note">Tanggal boleh kosong \u2014 catatan tanpa tanggal tetap dihitung.</div>';
   h+='<div class="sect">Bobot</div><div class="list"><details'+(f.ubahBobot?" open":"")+">"+
-    '<summary class="frow"><span class="fl">Skor jalan</span><span class="ctlval">'+TIERP[f.tier]+" \u00b7 "+BEBAN[f.tingkat_beban]+" \u00b7 "+bulat(skorJalan(f))+"</span></summary>"+
+    '<summary class="frow"><span class="fl">Hitungan</span><span class="ctlval">'+TIERP[f.tier]+" \u00b7 "+BEBAN[f.tingkat_beban]+" \u00b7 "+rupiah(skorJalan(f))+"</span></summary>"+
     '<div style="padding:2px 16px 14px">'+
       '<div class="cap">Tier perjalanan</div><div class=seg>'+
       Object.keys(TIER).map(function(t){return '<button data-aksi="set-tier" data-v="'+t+'" class="'+(f.tier===t?"tekan":"")+'">'+TIERP[t]+"</button>";}).join("")+"</div>"+
       '<div class="cap" style="margin-top:12px">Tingkat beban</div><div class=seg>'+
       [1,2,3].map(function(n){return '<button data-aksi="set-beban" data-v="'+n+'" class="'+(f.tingkat_beban===n?"tekan":"")+'">'+BEBAN[n]+"</button>";}).join("")+"</div>"+
+      '<div class="cap" style="margin-top:12px">Provinsi</div>'+
+      "<select data-f=provinsi>"+opsiProvinsi(f.provinsi)+"</select>"+
+      '<div class="cap" style="margin-top:12px">Berapa hari yang paket meeting?</div>'+
+      '<input data-f=hari_meeting type=number min=0 max="'+num(f.jumlah_hari,1)+'" value="'+
+        Math.min(num(f.hari_meeting,0),num(f.jumlah_hari,1))+'">'+
+      '<div class="note">Hari meeting tidak dapat uang harian penuh. Kalau menginap dapat '+
+        rupiah(cfg("uang_saku_fullboard",130000))+" per hari.</div>"+
+      rincianHTML(f)+
     "</div></details></div>";
   var r={}; rekap(0).forEach(function(x){r[x.id]=x;});
   var rj=null;
@@ -977,6 +1022,24 @@ function formCatat(){
     '<button data-aksi="batal">Batal</button></div>';
   return h;}
 
+
+function rincianHTML(f){
+  var r=rinciJalan(f);
+  if(!r.tarifAda) return '<div class="meta" style="margin-top:8px">Tarif provinsi belum ada.</div>';
+  var baris=[];
+  if(r.hn) baris.push(r.hn+" hari uang harian");
+  if(r.hm) baris.push(r.hm+" hari paket meeting");
+  return '<div class="meta" style="margin-top:8px"><b>'+rupiah(r.total)+" per orang</b> \u2014 "+
+    rupiah(r.uh)+" uang harian"+(baris.length?" ("+baris.join(" + ")+")":"")+
+    " + "+rupiah(r.transport)+" transport"+
+    (r.lengkap?"":' \u00b7 <span style="color:var(--alert)">transport provinsi ini belum diisi</span>')+
+    "</div>";}
+function opsiProvinsi(terpilih){
+  var t=terpilih||DB.config.provinsi_basis||"DKI Jakarta";
+  return DB.sbm.map(function(x){
+    return '<option value="'+esc(x.provinsi)+'"'+(x.provinsi===t?" selected":"")+">"+
+      esc(x.provinsi)+(num(x.transport_luar,0)||num(x.transport_dalam,0)?"":" (transport belum diisi)")+
+      "</option>";}).join("");}
 function bukaForm(k){
   if(!DB.jenis.length){
     bukaModal("Belum ada daftar kegiatan",
@@ -986,9 +1049,11 @@ function bukaForm(k){
   FORM=k?{id:k.id,jenis_id:k.jenis_id,judul:k.judul,tanggal:k.tanggal,
       jumlah_hari:num(k.jumlah_hari,1),lokasi:k.lokasi,tier:k.tier,
       tingkat_beban:num(k.tingkat_beban,2),ketua_id:k.ketua_id,catatan:k.catatan,
+      provinsi:k.provinsi||"",hari_meeting:num(k.hari_meeting,0),
       orang:{},ubahBobot:false}
     :{id:null,jenis_id:null,judul:"",tanggal:"",jumlah_hari:1,lokasi:"",
-      tier:"dalam_kota",tingkat_beban:2,ketua_id:null,catatan:"",orang:{},ubahBobot:false};
+      tier:"dalam_kota",tingkat_beban:2,ketua_id:null,catatan:"",
+      provinsi:"",hari_meeting:0,orang:{},ubahBobot:false};
   if(k) DB.penugasan.forEach(function(p){if(p.kegiatan_id===k.id) FORM.orang[p.anggota_id]=true;});
   MODAL=null; MODAL_KEG=null; gambarLapis();}
 
@@ -998,6 +1063,7 @@ function bacaForm(){
     var k=i.getAttribute("data-f"), v=i.value;
     if(k==="jenis_id"||k==="ketua_id") FORM[k]=v?parseInt(v,10):null;
     else if(k==="jumlah_hari") FORM[k]=Math.min(60,Math.max(1,parseInt(v,10)||1));
+    else if(k==="hari_meeting") FORM[k]=Math.max(0,parseInt(v,10)||0);
     else FORM[k]=v;});
   var o={};
   el.querySelectorAll("[data-orang]").forEach(function(c){
@@ -1020,7 +1086,7 @@ function detailKegiatan(id){
     '<div class="sub" style="margin:0 0 14px">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+(k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
     '<div class="list"><div class="cell static"><div class="tx">'+
       '<div class="tl">'+TIER[k.tier]+" \u00b7 beban "+BEBAN[k.tingkat_beban].toLowerCase()+"</div>"+
-      '<div class="sb">Skor jalan <b>'+bulat(skorJalan(k))+"</b> per orang</div>"+
+      '<div class="sb">Diterima <b>'+rupiah(skorJalan(k))+"</b> per orang</div>"+
     "</div></div></div>"+
     (k.catatan?'<div class="sect">Catatan</div><div class="list"><div class="cell static"><div class="tx"><div class="sb nm">'+esc(k.catatan).replace(/\n/g,"<br>")+"</div></div></div></div>":"")+
     '<div class="sect">Yang jalan ('+o.length+')</div><div class="list">'+
@@ -1043,7 +1109,7 @@ function detailOrang(id){
     '<div class="stats">'+
       '<div class="statc"><div class="v">'+(r?r.n:0)+'</div><div class="l">kali jalan</div></div>'+
       '<div class="statc"><div class="v">'+(r?r.hari:0)+'</div><div class="l">hari</div></div>'+
-      '<div class="statc"><div class="v">'+bulat(r?r.jalan:0)+'</div><div class="l">skor jalan</div></div>'+
+      '<div class="statc"><div class="v">'+rupiah(r?r.jalan:0)+'</div><div class="l">diterima</div></div>'+
       '<div class="statc"><div class="v">'+bulat(r?r.beban:0)+'</div><div class="l">skor beban</div></div>'+
     "</div>"+
     '<div class="sect">Sebaran tujuan</div><div class="list">'+
@@ -1090,7 +1156,7 @@ function teksRekap(){
     s+="\n_"+(kat==="tim"?"Tim inti":"Anak TU")+"_\n";
     rows.forEach(function(x,i){
       s+=(i+1)+". "+x.nama+" \u2014 "+x.n+"\u00d7 ("+x.tier.dalam_kota+" dlm kota / "+
-        x.tier.luar_pp+" luar PP / "+x.tier.luar_inap+" nginep), skor "+bulat(x.jalan)+"\n";});});
+        x.tier.luar_pp+" luar PP / "+x.tier.luar_inap+" nginep), skor "+rupiah(x.jalan)+"\n";});});
   return s;}
 function unduhCSV(){
   var kg={}; DB.kegiatan.forEach(function(k){kg[k.id]=k;});
@@ -1102,7 +1168,7 @@ function unduhCSV(){
     var j=k.jenis_id?cari(DB.jenis,k.jenis_id):null;
     b.push([j?j.nama:"",k.judul,k.tanggal||"",num(k.jumlah_hari,1),k.lokasi,TIER[k.tier],
       BEBAN[k.tingkat_beban],a.nama,kt?"ketua":a.kategori==="tu"?"TU":"anggota",
-      bulat(skorJalan(k)),bulat(skorBeban(k,kt))]);});
+      Math.round(skorJalan(k)),bulat(skorBeban(k,kt))]);});
   var csv=b.map(function(r){return r.map(function(c){
     return '"'+String(c==null?"":c).replace(/"/g,'""')+'"';}).join(",");}).join("\n");
   var url=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));
@@ -1120,6 +1186,9 @@ function formJenis(j){
     "<label>Tingkat beban</label><select id=jBeban>"+
     [1,2,3].map(function(n){
       return '<option value="'+n+'"'+((j?j.tingkat_beban:2)===n?" selected":"")+">"+n+" \u2013 "+BEBAN[n]+"</option>";}).join("")+"</select>"+
+    "<label>Paket meeting?</label><select id=jMeeting>"+
+    '<option value="0"'+(j&&j.paket_meeting?"":" selected")+">Bukan paket meeting</option>"+
+    '<option value="1"'+(j&&j.paket_meeting?" selected":"")+">Paket meeting (konsumsi ditanggung)</option></select>"+
     "<label>Status</label><select id=jAktif>"+
     '<option value="1"'+(!j||j.aktif?" selected":"")+">Aktif</option>"+
     '<option value="0"'+(j&&!j.aktif?" selected":"")+">Nonaktif (sembunyikan)</option></select>"+
@@ -1128,6 +1197,17 @@ function formJenis(j){
     (j?'<button data-aksi="jenis-hapus" data-v="'+j.id+'">Hapus</button>':"")+
     '<button data-aksi="tutup">Batal</button></div>';
   bukaModal(j?"Ubah kegiatan":"Tambah kegiatan",h);}
+function formSbm(prov){
+  var x=tarif(prov); if(!x) return;
+  var h='<div class="meta">Uang harian '+esc(prov)+": luar "+rupiah(num(x.uang_harian_luar,0))+
+    " \u00b7 dalam "+rupiah(num(x.uang_harian_dalam,0))+" (dari SBM, tidak bisa diubah)</div>"+
+    "<label>Transport dalam kota, PP (rupiah)</label>"+
+    '<input id=sTd type=number min=0 step=1000 value="'+num(x.transport_dalam,0)+'">'+
+    "<label>Transport dari Jakarta ke sini, PP (rupiah)</label>"+
+    '<input id=sTl type=number min=0 step=1000 value="'+num(x.transport_luar,0)+'">'+
+    '<div class="aksi"><button data-aksi="sbm-simpan" data-v="'+esc(prov)+'">Simpan</button>'+
+    '<button data-aksi="tutup">Batal</button></div>';
+  bukaModal("Transport "+prov,h);}
 function formAnggota(a){
   var h="<label>Nama</label><input id=aNama value=\""+esc(a?a.nama:"")+"\">"+
     "<label>Kategori</label><select id=aKat>"+
@@ -1151,7 +1231,9 @@ function simpanKegiatan(){
   rpc("keg_simpan_kegiatan",{p_pin:PIN,p_id:f.id,p_jenis_id:f.jenis_id,p_judul:f.judul,
     p_tanggal:f.tanggal||null,p_jumlah_hari:num(f.jumlah_hari,1),p_lokasi:f.lokasi,
     p_tier:f.tier,p_tingkat_beban:num(f.tingkat_beban,2),p_ketua_id:f.ketua_id,
-    p_catatan:f.catatan,p_orang:orang})
+    p_catatan:f.catatan,p_orang:orang,
+    p_provinsi:f.provinsi||null,
+    p_hari_meeting:Math.min(num(f.hari_meeting,0),num(f.jumlah_hari,1))})
     .then(function(){FORM=null;return muat();})
     .then(function(){stat("Tersimpan");})
     .catch(function(e){stat("Gagal: "+e.message);});}
@@ -1267,7 +1349,7 @@ document.addEventListener("click",function(ev){
     var nm=$("#jNama").value.trim(); if(!nm){stat("Nama wajib diisi");return;}
     rpc("keg_simpan_jenis",{p_pin:PIN,p_id:v?parseInt(v,10):null,p_nama:nm,
       p_tier:$("#jTier").value,p_tingkat_beban:parseInt($("#jBeban").value,10),
-      p_aktif:$("#jAktif").value==="1"})
+      p_aktif:$("#jAktif").value==="1",p_paket_meeting:$("#jMeeting").value==="1"})
       .then(function(){tutupModal();return muat();}).then(function(){stat("Tersimpan");})
       .catch(function(e){stat("Gagal: "+e.message);});return;}
   if(a==="jenis-hapus"){
@@ -1275,6 +1357,15 @@ document.addEventListener("click",function(ev){
     rpc("keg_hapus_jenis",{p_pin:PIN,p_id:parseInt(v,10)})
       .then(function(){tutupModal();return muat();}).then(function(){stat("Dihapus");})
       .catch(function(e){stat("Gagal: "+e.message);});return;}
+  if(a==="sbm-edit"){formSbm(v);return;}
+  if(a==="sbm-simpan"){
+    rpc("keg_set_sbm",{p_pin:PIN,p_provinsi:v,
+      p_td:Math.max(0,parseInt($("#sTd").value,10)||0),
+      p_tl:Math.max(0,parseInt($("#sTl").value,10)||0)})
+      .then(function(){tutupModal();return muat();})
+      .then(function(){stat("Tarif tersimpan");})
+      .catch(function(e){stat("Gagal: "+e.message);});
+    return;}
   if(a==="ang-baru"){formAnggota(null);return;}
   if(a==="ang-edit"){formAnggota(angg(parseInt(v,10)));return;}
   if(a==="ang-simpan"){
@@ -1331,7 +1422,8 @@ document.addEventListener("change",function(ev){
     bacaForm();
     if(k==="jenis_id"&&FORM&&FORM.jenis_id&&!FORM.id){
       var j=cari(DB.jenis,FORM.jenis_id);
-      if(j){FORM.tier=j.tier;FORM.tingkat_beban=j.tingkat_beban;}}
+      if(j){FORM.tier=j.tier;FORM.tingkat_beban=j.tingkat_beban;
+        FORM.hari_meeting=j.paket_meeting?num(FORM.jumlah_hari,1):0;}}
     gambarLapis(true); return;}
   if(el.getAttribute("data-aksi")==="ptahun"){
     PERIODE.tahun=parseInt(el.value,10)||0; render(); return;}

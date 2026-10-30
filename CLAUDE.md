@@ -185,31 +185,50 @@ class="sect">` telanjang, nanti satu bagian tidak ikut terlipat.
 **Dua skor terpisah, sengaja tidak digabung.** Menggabungkannya menghapus justru masalah
 yang mau dilihat: orang yang sering dinas berat di Jakarta (capek, duit kecil).
 
-Skor jalan (proxy uang, sama untuk semua peserta):
+**Yang diterima** — uang harian + transport, dalam RUPIAH, mengikuti SBM Kemenkeu
+(PMK 32/2025, TA 2026). Sama untuk semua peserta satu kegiatan.
 
-| Tier | Rumus |
-|---|---|
-| `dalam_kota` | `poin_dalam_kota × jumlah_hari` (default 1/hari) |
-| `luar_pp` | `poin_luar_hari × jumlah_hari` (default 1.8/hari) |
-| `luar_inap` | `poin_luar_hari × jumlah_hari + poin_nginap_malam × (jumlah_hari − 1)` (default 1.8 + 1.5/malam) |
+```
+hari          = jumlah_hari
+hari_meeting  = berapa hari yang paket meeting (dibatasi <= jumlah_hari)
+hari_biasa    = hari - hari_meeting
+luar          = tier != 'dalam_kota'
+nginap        = tier == 'luar_inap'
 
-**Perbandingan ini diturunkan dari uang harian nyata** (Okt 2026): dalam kota 170–380rb
-(dipakai tengahnya, 275rb = 1 poin), luar kota ~500rb/hari → 1.8, penginapan ~400rb/malam
-→ 1.5. Model ini cocok dalam 2% dengan uang nyata sampai dinas 10 hari.
+uang harian = hari_biasa   x (luar ? uang_harian_luar[prov] : uang_harian_dalam[prov])
+            + hari_meeting x (nginap ? uang_saku_fullboard : 0)
 
-**Satuannya tetap poin, JANGAN ditampilkan sebagai rupiah** — nominalnya beda-beda tiap kota,
-jadi angka rupiah di layar akan terlihat pasti padahal tidak. Ini sudah dibahas dan ditolak.
+satuan transport = luar ? transport_luar[prov] : transport_dalam[prov]
+transport        = nginap ? satuan : satuan x hari
+```
 
-Struktur lamanya (`poin_luar_inap` sebagai angka dasar TETAP + per malam) salah secara
-struktural: uang harian berjalan per hari, bukan sekali di awal. Akibatnya dinas sehari ke
-luar kota kelebihan 39% dan dinas 5 hari kekurangan 26%. Kunci `poin_luar_inap` sudah tidak
-dipakai.
+**Hanya yang masuk kantong.** Hotel dan tiket TIDAK dihitung — itu diganti sesuai kuitansi,
+tidak ada yang untung dari situ. Memasukkannya akan membuat orang yang kebetulan dinas ke
+Papua terlihat "kaya" padahal cuma tiketnya mahal.
 
-**Kunci config sengaja diganti nama** (`poin_luar_pp` → `poin_luar_hari`, `poin_per_malam` →
-`poin_nginap_malam`) supaya baris lama di `keg_config` yang masih berisi 2.5 dan 2 tidak ikut
-terpakai — config menang atas default di kode, jadi tanpa penggantian nama rumus baru akan
-jalan dengan angka basi dan hasilnya lebih meleset. Baris lama dibiarkan menganggur. Ada tes
-untuk ini.
+**Aturan yang gampang keliru:**
+- Paket meeting pulang hari → uang harian NOL (uang saku fullday dihapus di SBM 2026).
+  `uang_saku_fullboard` 130rb hanya untuk yang MENGINAP.
+- Transport berulang tiap hari kalau pulang-hari (rapat sehari-sehari nempel), tapi sekali PP
+  kalau menginap. Patokannya menginap, bukan dalam/luar kota.
+- `transport_luar` diukur DARI JAKARTA ke provinsi itu, jadi satu angka per provinsi tujuan.
+
+Tarif ada di tabel `keg_sbm` (38 provinsi, admin-only, ikut dikirim `keg_data`). Uang harian
+sudah terisi dari SBM; **transport harus diisi manual** lewat Admin → Tarif transport, karena
+tabel transport tidak ada di Lampiran I PMK 32/2025 yang bisa dibaca. Yang belum terisi
+ditandai di form dan di panel admin, bukan diam-diam dihitung nol.
+
+Diverifikasi terhadap lima contoh nyata dari Ibot (Okt 2026): meeting Jakarta 170rb,
+non-meeting Jakarta 380rb, meeting Bogor 540rb, produksi konten Bogor 970rb, dan 3 hari
+nginap dengan meeting di hari kedua. Kelimanya cocok persis. **Kalau mengubah rumus, jalankan
+`t13.js` — tes itu memeriksa kelima contoh tersebut.**
+
+**SBM ganti tiap tahun.** PMK 54/2026 untuk TA 2027 sudah terbit. Perlu perbarui `keg_sbm`
+tiap awal tahun anggaran.
+
+Angka ini PERKIRAAN, bukan SPJ — SBM itu batas tertinggi, realisasi bisa lebih rendah.
+Dipakai untuk membandingkan antar orang, bukan laporan keuangan. Label peringatan ada di
+layar "cara hitung"; jangan dihapus.
 
 Skor beban: `hari_kerja × tingkat_beban(1–3) × faktor_peran` (ketua 1.2, lainnya 1.0).
 `hari_kerja = jumlah_hari`, KECUALI tier `luar_inap` → `max(1, jumlah_hari − 2)` (hari pergi &

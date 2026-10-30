@@ -1,4 +1,4 @@
-const CACHE = "kegiatan-v29";
+const CACHE = "kegiatan-v30";
 const SHELL = ["./", "./index.html", "./ios.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
