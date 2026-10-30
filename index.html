@@ -289,6 +289,12 @@ function rinciJalan(k){
   return {uh:uh,transport:transport,total:uh+transport,hn:hn,hm:hm,
           lengkap:lengkap,tarifAda:true,kota:!!kt,asal:asal};}
 function skorJalan(k){return rinciJalan(k).total;}
+function bawaanHariMeeting(j,hari){
+  /* Jenis yang ditandai paket meeting mengisi 1 hari secara bawaan, bukan
+     seluruh durasi: biasanya cuma salah satu harinya yang paket, sisanya
+     tetap dapat uang harian. Tinggal dinaikkan kalau memang lebih. */
+  if(!j||!j.paket_meeting) return 0;
+  return Math.min(1,Math.max(1,num(hari,1)));}
 function skorBeban(k,ketua){
   var hari=Math.max(1,num(k.jumlah_hari,1));
   var kerja=(k.tier==="luar_inap")?Math.max(1,hari-2):hari;   // nginap: buang hari pergi & pulang
@@ -912,10 +918,10 @@ function formCatat(){
       return '<button data-aksi="set-beban" data-v="'+n+'" class="'+(f.tingkat_beban===n?"tekan":"")+'">'+
         BEBAN[n]+"</button>";}).join("")+"</div>"+
     "<label>Tujuan</label><select data-f=tujuan>"+opsiTujuan(f.kota,f.provinsi)+"</select>"+
-    "<label>Berapa hari yang makannya ditanggung panitia?</label>"+
+    "<label>Berapa hari paket meeting?</label>"+
     '<input data-f=hari_meeting type=number min=0 max="'+num(f.jumlah_hari,1)+'" value="'+
       Math.min(num(f.hari_meeting,0),num(f.jumlah_hari,1))+'">'+
-    '<div class="meta">Termasuk waktu kamu jadi narasumber di acara orang lain \u2014 patokannya konsumsi ditanggung, bukan kata "meeting". Hari begini <b>tidak dapat uang harian sama sekali</b>. Kegiatan 3 hari dengan meeting di hari kedua = uang harian 2 hari.</div>'+
+    '<div class="meta">Patokannya <b>konsumsi ditanggung panitia</b> \u2014 termasuk waktu kamu jadi narasumber di acara orang lain. Hari begini tidak dapat uang harian sama sekali. Kegiatan 3 hari dengan meeting di hari kedua = uang harian 2 hari.</div>'+
     rincianHTML(f)+"</details>";
 
   var r={}; rekap(0).forEach(function(x){r[x.id]=x;});
@@ -1403,7 +1409,7 @@ document.addEventListener("change",function(ev){
     if(k==="jenis_id"&&FORM&&FORM.jenis_id&&!FORM.id){
       var j=cari(DB.jenis,FORM.jenis_id);
       if(j){FORM.tier=j.tier;FORM.tingkat_beban=j.tingkat_beban;
-        FORM.hari_meeting=j.paket_meeting?num(FORM.jumlah_hari,1):0;}}
+        FORM.hari_meeting=bawaanHariMeeting(j,FORM.jumlah_hari);}}
     gambarLapis(true); return;}
   if(el.getAttribute("data-aksi")==="ptahun"){
     PERIODE.tahun=parseInt(el.value,10)||0; render(); return;}

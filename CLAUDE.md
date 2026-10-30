@@ -293,11 +293,16 @@ uang harian = (jumlah_hari - hari_meeting) x tarif provinsi
 - Patokannya **konsumsi ditanggung**, BUKAN kata "meeting". Waktu Ibot jadi narasumber
   di acara instansi lain, makannya ditanggung panitia, jadi hari itu nol juga —
   dibuktikan SPD 10/05/2026 Banten 2 hari yang uang hariannya cuma 370rb (satu hari).
-- Karena itu label di UI berbunyi **"Berapa hari yang makannya ditanggung panitia?"**
-  dan pilihan di master jenis "Ya, ditanggung panitia (paket meeting / jadi narasumber)".
-  **Jangan dikembalikan ke kata "paket meeting" saja** — Ibot akan menjawab "bukan
-  meeting" untuk hari narasumber dan uang hariannya jadi dobel. Nama kolom di database
-  tetap `hari_meeting` / `paket_meeting` supaya tidak perlu migrasi.
+- Label form berbunyi **"Berapa hari paket meeting?"** (atas permintaan Ibot), tapi
+  petunjuk di bawahnya WAJIB tetap menyebut **"konsumsi ditanggung panitia — termasuk
+  waktu kamu jadi narasumber di acara orang lain"**. Tanpa kalimat itu, hari narasumber
+  tidak ditandai dan uang hariannya jadi dobel; itu pernah kejadian di SPD 10/05/2026.
+  Pilihan di master jenis juga tetap "Ya, ditanggung panitia (paket meeting / jadi
+  narasumber)". Nama kolom di database tetap `hari_meeting` / `paket_meeting`.
+- **`bawaanHariMeeting(jenis, hari)`** mengisi nilai awalnya waktu jenis kegiatan dipilih:
+  **1** kalau jenisnya ditandai paket meeting, 0 kalau tidak — bukan seluruh durasi,
+  karena biasanya cuma salah satu harinya yang paket dan sisanya tetap dapat uang harian.
+  Nilainya tetap bisa dinaikkan manual. Ada tes di `t15.js`.
 
 ### Dua dunia saat deploy
 GitHub Pages terbit duluan, SQL dijalankan belakangan. Karena itu `simpanKegiatan()`
