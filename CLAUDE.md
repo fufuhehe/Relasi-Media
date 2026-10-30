@@ -214,9 +214,36 @@ Papua terlihat "kaya" padahal cuma tiketnya mahal.
 - `transport_luar` diukur DARI JAKARTA ke provinsi itu, jadi satu angka per provinsi tujuan.
 
 Tarif ada di tabel `keg_sbm` (38 provinsi, admin-only, ikut dikirim `keg_data`). Uang harian
-sudah terisi dari SBM; **transport harus diisi manual** lewat Admin → Tarif transport, karena
-tabel transport tidak ada di Lampiran I PMK 32/2025 yang bisa dibaca. Yang belum terisi
-ditandai di form dan di panel admin, bukan diam-diam dihitung nol.
+sudah terisi dari SBM. Yang belum terisi ditandai di form dan di panel admin, bukan diam-diam
+dihitung nol.
+
+### Transport luar kota — dihitung, bukan disimpan
+Kolom `keg_sbm.taksi` = tarif transportasi **kediaman↔terminal/bandara** dari PMK 32/2025
+bagian 16 hal. 85. Satuan aslinya **Orang/Kali = SEKALI JALAN**, jadi satu angka per provinsi,
+bukan PP.
+
+```
+transportLuar(prov) = taksi[provinsi_basis] + taksi[prov]  ×  faktor_transport
+```
+
+- `provinsi_basis` default `DKI Jakarta` — homebase. Itu sebabnya dinas ke Jakarta justru
+  kecil: yang dihitung cuma `transport_dalam`, bukan taksi dua ujung.
+- `faktor_transport` di `keg_config`: `1` = sekali jalan tiap ujung (Jakarta–Bogor 430rb),
+  `2` = PP tiap ujung (860rb). **Angka ini BELUM diverifikasi ke SPJ nyata** — Ibot ingat
+  Jakarta–Bogor sekitar 540rb, yang tidak cocok dengan keduanya. Jangan diam-diam diubah.
+- **Angka `transport_luar` yang diisi manual lewat Admin selalu MENANG** atas hasil hitungan,
+  dan ditandai `(manual)` di panel admin. Itu pintu keluar kalau rumusnya tidak cocok untuk
+  satu provinsi.
+- Sengaja **dihitung live di frontend, tidak disimpan** sebagai angka mati. Jadi mengubah
+  `faktor_transport` langsung berpengaruh ke 34 provinsi sekaligus tanpa hitung ulang.
+  Jangan "optimasi" ini jadi kolom tersimpan.
+- Tabel SBM itu cuma memuat **34 provinsi**. Empat provinsi pemekaran Papua (Papua Barat Daya,
+  Papua Tengah, Papua Selatan, Papua Pegunungan) `taksi`-nya 0 dan ditandai belum lengkap.
+  Mungkin ada di hal. 86 yang belum pernah dibaca.
+- `uang_saku_fullboard` bisa diubah dari Admin → Pengaturan skor (SBM ganti tiap tahun).
+
+Tes: `t14.js` (hitungan transport, faktor, angka manual, provinsi tanpa tarif) dan `t13.js`
+(lima contoh nyata). Jalankan dua-duanya di `index.js` DAN `ios.js`.
 
 Diverifikasi terhadap lima contoh nyata dari Ibot (Okt 2026): meeting Jakarta 170rb,
 non-meeting Jakarta 380rb, meeting Bogor 540rb, produksi konten Bogor 970rb, dan 3 hari

@@ -243,6 +243,13 @@ function provKeg(k){
 function tarif(nama){
   for(var i=0;i<DB.sbm.length;i++) if(DB.sbm[i].provinsi===nama) return DB.sbm[i];
   return null;}
+function transportLuar(t){
+  if(!t) return 0;
+  if(num(t.transport_luar,0)>0) return num(t.transport_luar,0);   // diisi manual, menang
+  var asal=tarif(DB.config.provinsi_basis||"DKI Jakarta");
+  var a=num(asal&&asal.taksi,0), b=num(t.taksi,0);
+  if(!b) return 0;
+  return (a+b)*Math.max(1,cfg("faktor_transport",1));}
 function rinciJalan(k){
   var t=tarif(provKeg(k));
   var hari=Math.max(1,num(k.jumlah_hari,1));
@@ -251,7 +258,7 @@ function rinciJalan(k){
   if(!t) return {uh:0,transport:0,total:0,hn:hn,hm:hm,lengkap:false,tarifAda:false};
   var uh=hn*num(luar?t.uang_harian_luar:t.uang_harian_dalam,0)
         +hm*(nginap?cfg("uang_saku_fullboard",130000):0);
-  var satuan=num(luar?t.transport_luar:t.transport_dalam,0);
+  var satuan=luar?transportLuar(t):num(t.transport_dalam,0);
   var transport=nginap?satuan:satuan*hari;
   return {uh:uh,transport:transport,total:uh+transport,hn:hn,hm:hm,
           lengkap:satuan>0,tarifAda:true};}
@@ -799,10 +806,10 @@ function viewAdmin(){
   h+=adm("sbm","Tarif transport",
     '<div class="meta">Uang harian sudah terisi dari SBM. Yang perlu kamu isi cuma transport.</div>'+
     DB.sbm.map(function(x){
-      var kosong=!num(x.transport_dalam,0)&&!num(x.transport_luar,0);
+      var kosong=!num(x.transport_dalam,0)&&!transportLuar(x);
       return '<div class="pilih"><span class="nm">'+esc(x.provinsi)+
         '<div class="meta">dalam '+rupiah(num(x.transport_dalam,0))+
-        " \u00b7 luar "+rupiah(num(x.transport_luar,0))+
+        " \u00b7 luar "+rupiah(transportLuar(x))+(num(x.transport_luar,0)?" (manual)":"")+
         (kosong?' <span class="chip w">belum diisi</span>':"")+"</div></span>"+
         '<button class="kecil" data-aksi="sbm-edit" data-v="'+esc(x.provinsi)+'">Ubah</button></div>';}).join(""), DB.sbm.filter(function(x){
       return num(x.transport_dalam,0)||num(x.transport_luar,0);}).length+"/"+DB.sbm.length);
@@ -813,9 +820,9 @@ function viewAdmin(){
         ' <span class="meta">'+(a.kategori==="tu"?"TU":"tim")+(a.aktif?"":" \u00b7 nonaktif")+"</span></span>"+
         '<button class="kecil" data-aksi="ang-edit" data-v="'+a.id+'">Ubah</button></div>';}).join(""),
     DB.anggota.length);
-  var c=[["nama_tim","Judul app","text"],["poin_dalam_kota","Poin dalam kota / hari","number"],
-    ["poin_luar_hari","Poin luar kota / hari (PP maupun nginap)","number"],
-    ["poin_nginap_malam","Tambahan per malam nginap","number"],
+  var c=[["nama_tim","Judul app","text"],
+    ["faktor_transport","Transport terminal: 1 = sekali jalan, 2 = PP","number"],
+    ["uang_saku_fullboard","Uang saku paket meeting nginap (Rp)","number"],
     ["faktor_ketua","Faktor beban ketua","number"]];
   h+=adm("skor","Pengaturan skor &amp; PIN",
     c.map(function(x){return "<label>"+x[1]+'</label><input data-cfg="'+x[0]+'" type="'+x[2]+
@@ -1087,6 +1094,9 @@ function formSbm(prov){
   var x=tarif(prov); if(!x) return;
   var h='<div class="meta">Uang harian '+esc(prov)+": luar "+rupiah(num(x.uang_harian_luar,0))+
     " \u00b7 dalam "+rupiah(num(x.uang_harian_dalam,0))+" (dari SBM, tidak bisa diubah)</div>"+
+    '<div class="meta">Tarif terminal SBM '+rupiah(num(x.taksi,0))+" sekali jalan \u2192 hitungan otomatis "+
+    rupiah(transportLuar({taksi:num(x.taksi,0),transport_luar:0}))+
+    ". Isi di bawah cuma kalau mau menimpanya.</div>"+
     "<label>Transport dalam kota, PP (rupiah)</label>"+
     '<input id=sTd type=number min=0 step=1000 value="'+num(x.transport_dalam,0)+'">'+
     "<label>Transport dari Jakarta ke sini, PP (rupiah)</label>"+
