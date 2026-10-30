@@ -232,9 +232,10 @@ function namaKeg(k){
 /* ---------- skor ---------- */
 function skorJalan(k){
   var h=Math.max(1,num(k.jumlah_hari,1));
-  if(k.tier==="luar_inap") return cfg("poin_luar_inap",3)+cfg("poin_per_malam",2)*(h-1);
-  if(k.tier==="luar_pp")   return cfg("poin_luar_pp",2.5)*h;
-  return cfg("poin_dalam_kota",1)*h;}
+  if(k.tier==="dalam_kota") return cfg("poin_dalam_kota",1)*h;
+  var s=cfg("poin_luar_hari",1.8)*h;                      // harian luar kota, per hari
+  if(k.tier==="luar_inap") s+=cfg("poin_nginap_malam",1.5)*(h-1);  // penginapan, per malam
+  return s;}
 function skorBeban(k,ketua){
   var hari=Math.max(1,num(k.jumlah_hari,1));
   var kerja=(k.tier==="luar_inap")?Math.max(1,hari-2):hari;   // nginap: buang hari pergi & pulang
@@ -676,14 +677,17 @@ function viewCatat(){
   return h;}
 
 function caraHitung(){
-  var pk=cfg("poin_dalam_kota",1), pp=cfg("poin_luar_pp",2.5), pi=cfg("poin_luar_inap",3),
-      pm=cfg("poin_per_malam",2), fk=cfg("faktor_ketua",1.2);
+  var pk=cfg("poin_dalam_kota",1), pp=cfg("poin_luar_hari",1.8),
+      pm=cfg("poin_nginap_malam",1.5), fk=cfg("faktor_ketua",1.2);
   return '<p>Ada <b>dua skor terpisah</b>, sengaja tidak digabung — biar keliatan siapa yang kluntingnya kecil tapi bebannya berat.</p>'+
     '<fieldset class="grp"><legend>Skor jalan (proxy klunting)</legend>'+
       '<div class="meta">Sama untuk semua peserta satu kegiatan. Makin sering &amp; makin jauh, makin gede.</div>'+
       "<table><tr><td>Dalam kota</td><td class=n>"+pk+" × hari</td></tr>"+
       "<tr><td>Luar kota PP</td><td class=n>"+pp+" × hari</td></tr>"+
-      "<tr><td>Luar kota nginap</td><td class=n>"+pi+" + "+pm+" × (hari−1)</td></tr></table></fieldset>"+
+      "<tr><td>Luar kota nginap</td><td class=n>"+pp+" × hari + "+pm+" × (hari−1)</td></tr></table>"+
+      '<div class="meta" style="margin-top:6px">Perbandingannya diambil dari uang harian nyata '+
+      "(luar kota \u2248 1,8\u00d7 dalam kota) lalu ditambah penginapan per malam. "+
+      "Satuannya tetap poin, bukan rupiah \u2014 nominalnya beda-beda tiap kota.</div></fieldset>"+
     '<fieldset class="grp"><legend>Skor beban (proxy capek)</legend>'+
       "<p><b>hari kerja × tingkat beban × faktor peran</b></p>"+
       '<div class="meta">• Hari kerja = jumlah hari. Khusus <b>nginap</b> dikurangi 2 (hari pergi &amp; pulang dianggap perjalanan, bukan kerja).<br>'+
@@ -773,9 +777,9 @@ function viewAdmin(){
         '<button class="kecil" data-aksi="ang-edit" data-v="'+a.id+'">Ubah</button></div>';}).join(""),
     DB.anggota.length);
   var c=[["nama_tim","Judul app","text"],["poin_dalam_kota","Poin dalam kota / hari","number"],
-    ["poin_luar_pp","Poin luar kota PP / hari","number"],
-    ["poin_luar_inap","Poin dasar luar kota nginep","number"],
-    ["poin_per_malam","Tambahan per malam","number"],["faktor_ketua","Faktor beban ketua","number"]];
+    ["poin_luar_hari","Poin luar kota / hari (PP maupun nginap)","number"],
+    ["poin_nginap_malam","Tambahan per malam nginap","number"],
+    ["faktor_ketua","Faktor beban ketua","number"]];
   h+=adm("skor","Pengaturan skor &amp; PIN",
     c.map(function(x){return "<label>"+x[1]+'</label><input data-cfg="'+x[0]+'" type="'+x[2]+
       '" step="0.1" value="'+esc(DB.config[x[0]]||"")+'">';}).join("")+
