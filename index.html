@@ -107,6 +107,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .kthumb{width:46px;height:46px;flex:none;object-fit:cover;display:block;background:var(--field);
   border:1px solid;border-color:var(--shadow) var(--light) var(--light) var(--shadow)}
 .kthumb.kosong{background:transparent}
+.duit{color:var(--fg);font-weight:bold}
 .lbh{color:var(--shadow)}
 .satu{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .klink{float:right;width:15px;height:15px;margin:1px 0 2px 6px;color:var(--textdim)}
@@ -291,6 +292,15 @@ function rinciJalan(k){
   return {uh:uh,transport:transport,total:uh+transport,hn:hn,hm:hm,
           lengkap:lengkap,tarifAda:true,kota:!!kt,asal:asal};}
 function skorJalan(k){return rinciJalan(k).total;}
+function uangRingkas(k){
+  /* Ditaruh di AWAL baris meta, bukan di ujung: karena tiap kartu mulai di
+     x yang sama, angkanya jadi satu kolom yang gampang disusuri waktu
+     mencocokkan dengan daftar SPJ. Kalau ditaruh di ujung, lokasi yang
+     panjang mendorongnya keluar layar. */
+  var r=rinciJalan(k);
+  if(!r.tarifAda) return '<b class="duit" title="tarif provinsi belum ada">Rp ?</b>';
+  return '<b class="duit"'+(r.lengkap?"":' title="tarif transport belum diisi"')+">"+
+    rupiah(r.total)+"/org"+(r.lengkap?"":"?")+"</b>";}
 function bawaanHariMeeting(j,hari){
   /* Jenis yang ditandai paket meeting mengisi 1 hari secara bawaan, bukan
      seluruh durasi: biasanya cuma salah satu harinya yang paket, sisanya
@@ -713,7 +723,7 @@ function viewCatat(){
       '<div class="kinfo">'+
         (nd?'<span class="klink" title="'+nd+' dokumen">'+IKON_LINK+"</span>":"")+
         '<div class="jud">'+esc(namaKeg(k))+"</div>"+
-        '<div class="meta">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+
+        '<div class="meta">'+uangRingkas(k)+" \u00b7 "+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+
           (k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
         '<div class="meta">'+namaRingkas(k)+"</div>"+
       "</div></div></div>";}

@@ -171,6 +171,7 @@ details>summary.frow{padding:13px 16px}
 .kthumb{width:46px;height:46px;flex:none;object-fit:cover;display:block;
   background:var(--card2);border-radius:10px;margin-right:12px}
 .kthumb.kosong{box-shadow:inset 0 0 0 1px var(--sep);background:transparent}
+.duit{color:var(--fg);font-weight:600}
 .lbh{color:var(--textdim);opacity:.65}
 .satu{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .klink{float:right;width:16px;height:16px;margin:2px 0 2px 8px;color:var(--textdim)}
@@ -410,6 +411,15 @@ function rinciJalan(k){
   return {uh:uh,transport:transport,total:uh+transport,hn:hn,hm:hm,
           lengkap:lengkap,tarifAda:true,kota:!!kt,asal:asal};}
 function skorJalan(k){return rinciJalan(k).total;}
+function uangRingkas(k){
+  /* Ditaruh di AWAL baris meta, bukan di ujung: karena tiap kartu mulai di
+     x yang sama, angkanya jadi satu kolom yang gampang disusuri waktu
+     mencocokkan dengan daftar SPJ. Kalau ditaruh di ujung, lokasi yang
+     panjang mendorongnya keluar layar. */
+  var r=rinciJalan(k);
+  if(!r.tarifAda) return '<b class="duit" title="tarif provinsi belum ada">Rp ?</b>';
+  return '<b class="duit"'+(r.lengkap?"":' title="tarif transport belum diisi"')+">"+
+    rupiah(r.total)+"/org"+(r.lengkap?"":"?")+"</b>";}
 function bawaanHariMeeting(j,hari){
   /* Jenis yang ditandai paket meeting mengisi 1 hari secara bawaan, bukan
      seluruh durasi: biasanya cuma salah satu harinya yang paket, sisanya
@@ -838,7 +848,7 @@ function viewCatat(){
       '<div class="tx">'+
       (nd?'<span class="klink" title="'+nd+' dokumen">'+IKON_LINK+"</span>":"")+
       '<div class="tl">'+esc(namaKeg(k))+"</div>"+
-      '<div class="sb">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+(k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
+      '<div class="sb">'+uangRingkas(k)+" \u00b7 "+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+(k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
       '<div class="sb nm">'+namaRingkas(k)+"</div>"+
       "</div><span class=\"chev\"></span></div>";}
   if(tanpa.length)

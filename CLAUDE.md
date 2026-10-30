@@ -395,6 +395,13 @@ Target sekitar 6-7 kartu per layar HP, rapat tapi masih nyaman diketuk. Aturan y
   ada versi kecil. Tanpa `lazy`, membuka daftar berarti mengunduh puluhan megabita
   sekaligus di HP. Kalau suatu saat transformasi gambar Supabase aktif, tambahkan
   `?width=92&quality=60` di URL tanda tangan dan ini jadi tidak terlalu genting.
+- **Kartu menulis rupiahnya**, lewat `uangRingkas(k)`, di **AWAL** baris meta —
+  `Rp 516rb/org · 28 Okt 2026 · 1 hari · Aston Bintaro`. Taruh di awal, jangan di ujung:
+  tiap kartu mulai di x yang sama sehingga angkanya jadi kolom rata kiri yang gampang
+  disusuri waktu mencocokkan dengan daftar SPJ, sedangkan di ujung lokasi yang panjang
+  akan mendorongnya keluar layar. Akhiran `/org` wajib — angkanya per orang, bukan total
+  satu kegiatan. Tarif yang belum ada ditulis **`Rp ?`** dan yang belum lengkap diberi
+  **`?`** di belakang, bukan diam-diam nol.
 - **Slot foto SELALU ada** (46px), terisi thumbnail atau `kthumb kosong` yang transparan
   dengan garis tipis. Gunanya dua: tepi kiri teks jadi rata (tanpa ini daftarnya bergerigi
   dan capek dibaca), dan slot kosong itu SENDIRI yang menandakan belum ada foto.
