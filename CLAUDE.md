@@ -303,6 +303,9 @@ uang harian = (jumlah_hari - hari_meeting) x tarif provinsi
   **1** kalau jenisnya ditandai paket meeting, 0 kalau tidak — bukan seluruh durasi,
   karena biasanya cuma salah satu harinya yang paket dan sisanya tetap dapat uang harian.
   Nilainya tetap bisa dinaikkan manual. Ada tes di `t15.js`.
+- Catatan lama yang terlanjur terisi seluruh durasi sudah dirapikan sekali jalan oleh
+  `26-hari-meeting.sql` (hanya menyentuh catatan yang JENISNYA ditandai paket meeting;
+  yang diisi manual di jenis lain tidak diutak-atik).
 
 ### Dua dunia saat deploy
 GitHub Pages terbit duluan, SQL dijalankan belakangan. Karena itu `simpanKegiatan()`
