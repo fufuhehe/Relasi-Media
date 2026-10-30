@@ -220,9 +220,20 @@ Dasar bukti: **Daftar Nominatif SPD 2026 Ibot** (57 catatan, Rp 41.563.760) dan
 
 ```
 1. keg_kegiatan.kota ada di daftar tujuan  → pakai tarifnya (boleh 0)
-2. tier == 'dalam_kota'                    → transport_dalam, Jakarta 170rb
+2. dalam kota                              → transport_dalam, Jakarta 170rb
+     tier == 'dalam_kota'  ATAU  provinsi tujuan == provinsi_basis
 3. sisanya                                 → (taksi asal + taksi tujuan) x 2
 ```
+
+**Tujuan di provinsi sendiri SELALU dalam kota, berapa pun tier-nya.** Rumus jalur 3
+menganggap berangkat dari luar provinsi; dipakai untuk DKI→DKI hasilnya
+(250+250)×2 = **Rp 1 juta**, padahal homebase-nya Jakarta jadi kenyataannya 170rb. Ini
+sempat lolos karena catatan Jakarta banyak yang ditandai `luar_pp`. Variabel `luar` di
+`rinciJalan` ikut jadi `false`, jadi **uang hariannya pun** pakai tarif dalam kota
+(210rb), bukan luar kota (530rb) — sesuai SPJ: rapat Jakarta non-meeting = 170 + 210.
+Tujuan khusus yang dipilih (mis. Kepulauan Seribu, provinsi DKI) tetap menang lewat
+jalur 1, jadi pengecualian ini tidak menabrak kasus itu. `skorBeban` TIDAK ikut berubah —
+`tier` di sana tetap apa adanya.
 
 **Transport dibayar SEKALI per perjalanan**, tidak pernah dikali jumlah hari.
 Bukti: Kab. Bekasi 2 hari 512rb, Bali 3 hari 938rb, NTT 3 hari 710rb.

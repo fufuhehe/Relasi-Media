@@ -386,7 +386,13 @@ function rinciJalan(k){
   var t=tarif(provKeg(k));
   var hari=Math.max(1,num(k.jumlah_hari,1));
   var hm=Math.min(Math.max(0,num(k.hari_meeting,0)),hari), hn=hari-hm;
-  var luar=(k.tier!=="dalam_kota");
+  /* Tujuan di provinsi sendiri = DALAM KOTA, berapa pun tier-nya. Rumus
+     jalur 3 menganggap berangkat dari luar provinsi; dipakai untuk
+     DKI->DKI hasilnya (250+250)x2 = Rp 1jt, padahal kenyataannya 170rb.
+     Kalau tujuan khususnya dipilih (mis. Kepulauan Seribu) jalur 1 tetap
+     menang, jadi pengecualian ini tidak menabrak kasus itu. */
+  var samaProv=!kt && provKeg(k)===(DB.config.provinsi_basis||"DKI Jakarta");
+  var luar=(k.tier!=="dalam_kota") && !samaProv;
   if(!t) return {uh:0,transport:0,total:0,hn:hn,hm:hm,
                  lengkap:false,tarifAda:false,kota:!!kt,asal:""};
   /* Hari yang ditanggung panitia TIDAK dapat uang harian sama sekali.
