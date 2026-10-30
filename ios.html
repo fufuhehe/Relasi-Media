@@ -276,7 +276,7 @@ var SB_URL="https://wwgqgsjyaodxfuhjwksj.supabase.co";
 var SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3Z3Fnc2p5YW9keGZ1aGp3a3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyNzU3ODcsImV4cCI6MjEwMTg1MTc4N30.PfrrLh0TWXT1mvI_ObpDE9iuKn-KhzDiSoCVr3qI5Vo";
 var HDR={apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json"};
 
-var DB={anggota:[],jenis:[],kegiatan:[],penugasan:[],foto:[],sbm:[],config:{}};
+var DB={anggota:[],jenis:[],kegiatan:[],penugasan:[],foto:[],sbm:[],kota:[],config:{}};
 var FOTO_URL={};
 var IKON_LINK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10 13.6a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 1 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.4a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 1 0 5.7 5.7l1.6-1.6"/></svg>';
 var BULAN_BUKA=null;
@@ -369,18 +369,31 @@ function transportLuar(t){
   var a=num(asal&&asal.taksi,0), b=num(t.taksi,0);
   if(!b) return 0;
   return (a+b)*Math.max(1,cfg("faktor_transport",1));}
+function tarifKota(lok){
+  /* Jakarta->Bodetabek punya tarif sendiri per kota, tidak bisa dihitung
+     dari tarif provinsi. Yang namanya paling panjang menang, supaya
+     "tangerang selatan" tidak kalah sama "tangerang". */
+  if(!lok) return 0;
+  var s=String(lok).toLowerCase(), nilai=0, pjg=0;
+  for(var i=0;i<DB.kota.length;i++){
+    var n=String(DB.kota[i].kota||"").toLowerCase();
+    if(n&&s.indexOf(n)>=0&&n.length>pjg){pjg=n.length;nilai=num(DB.kota[i].tarif,0);}}
+  return nilai;}
 function rinciJalan(k){
   var t=tarif(provKeg(k));
   var hari=Math.max(1,num(k.jumlah_hari,1));
   var hm=Math.min(Math.max(0,num(k.hari_meeting,0)),hari), hn=hari-hm;
-  var luar=(k.tier!=="dalam_kota"), nginap=(k.tier==="luar_inap");
-  if(!t) return {uh:0,transport:0,total:0,hn:hn,hm:hm,lengkap:false,tarifAda:false};
+  var luar=(k.tier!=="dalam_kota");
+  if(!t) return {uh:0,transport:0,total:0,hn:hn,hm:hm,lengkap:false,tarifAda:false,kota:false};
   var uh=hn*num(luar?t.uang_harian_luar:t.uang_harian_dalam,0)
-        +hm*(nginap?cfg("uang_saku_fullboard",130000):0);
-  var satuan=luar?transportLuar(t):num(t.transport_dalam,0);
-  var transport=nginap?satuan:satuan*hari;
-  return {uh:uh,transport:transport,total:uh+transport,hn:hn,hm:hm,
-          lengkap:satuan>0,tarifAda:true};}
+        +hm*(nginap(k)?cfg("uang_saku_fullboard",130000):0);
+  var kota=luar?tarifKota(k.lokasi):0;
+  /* Transport dibayar SEKALI per perjalanan, tidak dikali jumlah hari.
+     Dibuktikan di SPJ: Bekasi 2 hari = 512rb, Bali 3 hari = 938rb. */
+  var satuan=kota||(luar?transportLuar(t):num(t.transport_dalam,0));
+  return {uh:uh,transport:satuan,total:uh+satuan,hn:hn,hm:hm,
+          lengkap:satuan>0,tarifAda:true,kota:kota>0};}
+function nginap(k){return k&&k.tier==="luar_inap";}
 function skorJalan(k){return rinciJalan(k).total;}
 function skorBeban(k,ketua){
   var hari=Math.max(1,num(k.jumlah_hari,1));
@@ -456,7 +469,7 @@ function muat(){
     if(!SANDI&&PIN) SANDI=PIN;
     DB.anggota=d.anggota||[]; DB.jenis=d.jenis||[]; DB.kegiatan=d.kegiatan||[];
     DB.penugasan=d.penugasan||[]; DB.foto=d.foto||[];
-    DB.sbm=d.sbm||[]; DB.config=d.config||{};
+    DB.sbm=d.sbm||[]; DB.kota=d.kota||[]; DB.config=d.config||{};
     return lanjutMuat();
   }).catch(function(e){
     var m=String((e&&e.message)||e||"");
@@ -833,8 +846,8 @@ function caraHitung(){
       "<table>"+
       "<tr><td>Uang harian, hari biasa</td><td class=n>tarif provinsi × hari</td></tr>"+
       "<tr><td>Uang harian, hari paket meeting</td><td class=n>"+rupiah(fb)+" kalau menginap, selain itu 0</td></tr>"+
-      "<tr><td>Transport, menginap</td><td class=n>sekali PP</td></tr>"+
-      "<tr><td>Transport, pulang hari</td><td class=n>per hari</td></tr></table>"+
+      "<tr><td>Transport</td><td class=n>sekali PP per perjalanan</td></tr>"+
+      "<tr><td>Transport Bodetabek</td><td class=n>tarif khusus per kota</td></tr></table>"+
       '<div class="meta" style="margin-top:6px">Contoh '+esc(DB.config.provinsi_basis||"DKI Jakarta")+
       ": uang harian luar kota "+rupiah(num(t.uang_harian_luar,0))+
       ", dalam kota "+rupiah(num(t.uang_harian_dalam,0))+
@@ -920,6 +933,12 @@ function viewAdmin(){
     DB.jenis.length);
   h+=adm("sbm","Tarif transport",
     '<div class="note" style="margin:0 6px 7px">Uang harian sudah terisi dari SBM. Yang perlu kamu isi cuma transport.</div>'+
+    '<div class="note" style="margin:0 6px 7px"><b>Tarif khusus per kota</b> (Bodetabek) \u2014 dipakai duluan kalau namanya kebaca di lokasi.</div>'+
+    '<div class="list">'+DB.kota.map(function(x){
+      return '<div class="cell"><div class="tx"><div class="tl">'+esc(x.kota)+"</div>"+
+        '<div class="sb">'+rupiah(num(x.tarif,0))+" PP</div></div>"+
+        '<button class="kecil" data-aksi="kota-edit" data-v="'+esc(x.kota)+'">Ubah</button></div>';}).join("")+"</div>"+
+    '<div class="aksi" style="margin:4px 6px 10px"><button data-aksi="kota-baru">+ Tambah kota</button></div>'+
     '<div class="list">'+DB.sbm.map(function(x){
       var kosong=!num(x.transport_dalam,0)&&!transportLuar(x);
       return '<div class="cell"><div class="tx"><div class="tl">'+esc(x.provinsi)+"</div>"+
@@ -937,7 +956,7 @@ function viewAdmin(){
     '<div class="aksi" style="margin-top:10px"><button data-aksi="ang-baru">+ Tambah orang</button></div>',
     DB.anggota.length);
   var c=[["nama_tim","Judul app","text"],
-    ["faktor_transport","Transport terminal: 1 = sekali jalan, 2 = PP","number"],
+    ["faktor_transport","Pengali transport terminal (2 = PP, sesuai SPJ)","number"],
     ["uang_saku_fullboard","Uang saku paket meeting nginap (Rp)","number"],
     ["faktor_ketua","Faktor beban ketua","number"]];
   h+=adm("skor","Pengaturan skor &amp; PIN",'<div style="padding:2px 6px 4px">'+
@@ -1218,6 +1237,17 @@ function formSbm(prov){
     '<div class="aksi"><button data-aksi="sbm-simpan" data-v="'+esc(prov)+'">Simpan</button>'+
     '<button data-aksi="tutup">Batal</button></div>';
   bukaModal("Transport "+prov,h);}
+function formKota(nama){
+  var x=null;
+  for(var i=0;i<DB.kota.length;i++) if(DB.kota[i].kota===nama) x=DB.kota[i];
+  var h='<div class="meta">Tarif Jakarta \u2194 kota ini, sekali perjalanan PP. Dipakai kalau nama kota kebaca di kolom lokasi kegiatan. Isi 0 untuk menghapus.</div>'+
+    "<label>Nama kota (huruf kecil)</label>"+
+    '<input id=kNama value="'+esc(x?x.kota:"")+'"'+(x?" readonly":"")+">"+
+    "<label>Tarif PP (rupiah)</label>"+
+    '<input id=kTarif type=number min=0 step=1000 value="'+(x?num(x.tarif,0):0)+'">'+
+    '<div class="aksi"><button data-aksi="kota-simpan">Simpan</button>'+
+    '<button data-aksi="tutup">Batal</button></div>';
+  bukaModal(x?"Transport "+x.kota:"Tambah kota",h);}
 function formAnggota(a){
   var h="<label>Nama</label><input id=aNama value=\""+esc(a?a.nama:"")+"\">"+
     "<label>Kategori</label><select id=aKat>"+
@@ -1374,6 +1404,17 @@ document.addEventListener("click",function(ev){
       p_tl:Math.max(0,parseInt($("#sTl").value,10)||0)})
       .then(function(){tutupModal();return muat();})
       .then(function(){stat("Tarif tersimpan");})
+      .catch(function(e){stat("Gagal: "+e.message);});
+    return;}
+  if(a==="kota-baru"){formKota(null);return;}
+  if(a==="kota-edit"){formKota(v);return;}
+  if(a==="kota-simpan"){
+    var kn=$("#kNama").value.trim().toLowerCase();
+    if(!kn){stat("Nama kota wajib diisi");return;}
+    rpc("keg_set_transport_kota",{p_pin:PIN,p_kota:kn,
+      p_tarif:Math.max(0,parseInt($("#kTarif").value,10)||0)})
+      .then(function(){tutupModal();return muat();})
+      .then(function(){stat("Tarif kota tersimpan");})
       .catch(function(e){stat("Gagal: "+e.message);});
     return;}
   if(a==="ang-baru"){formAnggota(null);return;}

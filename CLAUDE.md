@@ -67,6 +67,7 @@ yang bisa dibaca anon langsung. Lihat bagian "Sandi tim" di bawah.
 - `keg_penugasan` — kegiatan_id + anggota_id saja (tidak ada kolom peran)
 - `keg_foto` — bukti dokumentasi: kegiatan_id, path (unik), keterangan, dibuat, `sampul` bool
 - `keg_dokumen` — link dokumen & folder Drive: kegiatan_id, url, nama, dibuat. **ADMIN ONLY**
+- `keg_transport_kota` — tarif transport PP per kota (Bodetabek), kunci huruf kecil. ADMIN ONLY
 - `keg_config` — PIN + faktor skor. View `keg_config_public` = config tanpa PIN.
 
 Anon **hanya SELECT**; grant INSERT/UPDATE/DELETE sudah dicabut. Semua tulis lewat fungsi
@@ -209,41 +210,65 @@ Papua terlihat "kaya" padahal cuma tiketnya mahal.
 **Aturan yang gampang keliru:**
 - Paket meeting pulang hari → uang harian NOL (uang saku fullday dihapus di SBM 2026).
   `uang_saku_fullboard` 130rb hanya untuk yang MENGINAP.
-- Transport berulang tiap hari kalau pulang-hari (rapat sehari-sehari nempel), tapi sekali PP
-  kalau menginap. Patokannya menginap, bukan dalam/luar kota.
+- **Transport dibayar SEKALI per perjalanan**, tidak pernah dikali jumlah hari. Satu SPD =
+  satu klaim transport. (Dugaan awal "berulang tiap hari kalau pulang-hari" SALAH dan sudah
+  dikoreksi — lihat bukti di bawah.)
 - `transport_luar` diukur DARI JAKARTA ke provinsi itu, jadi satu angka per provinsi tujuan.
 
 Tarif ada di tabel `keg_sbm` (38 provinsi, admin-only, ikut dikirim `keg_data`). Uang harian
 sudah terisi dari SBM. Yang belum terisi ditandai di form dan di panel admin, bukan diam-diam
 dihitung nol.
 
-### Transport luar kota — dihitung, bukan disimpan
-Kolom `keg_sbm.taksi` = tarif transportasi **kediaman↔terminal/bandara** dari PMK 32/2025
-bagian 16 hal. 85. Satuan aslinya **Orang/Kali = SEKALI JALAN**, jadi satu angka per provinsi,
-bukan PP.
+### Transport — TIGA jalur, diurut begini
+Dasar bukti: **Daftar Nominatif SPD 2026 Ibot** (57 catatan, total Rp 41.563.760,
+transport Rp 28.763.760, uang harian Rp 12.800.000). Itu dokumen resmi, bukan ingatan.
+Semua angka di bawah berasal dari sana. **Jangan menambah komponen yang tidak ada
+angkanya di dokumen.**
 
 ```
-transportLuar(prov) = taksi[provinsi_basis] + taksi[prov]  ×  faktor_transport
+1. tarifKota(lokasi)   — nama kota kebaca di kolom lokasi  → pakai ini
+2. transport_dalam     — tier dalam_kota                   → Jakarta 170rb
+3. transportLuar(prov) — sisanya                           → (taksi asal + taksi tujuan) x 2
 ```
 
-- `provinsi_basis` default `DKI Jakarta` — homebase. Itu sebabnya dinas ke Jakarta justru
-  kecil: yang dihitung cuma `transport_dalam`, bukan taksi dua ujung.
-- `faktor_transport` di `keg_config`: `1` = sekali jalan tiap ujung (Jakarta–Bogor 430rb),
-  `2` = PP tiap ujung (860rb). **Angka ini BELUM diverifikasi ke SPJ nyata** — Ibot ingat
-  Jakarta–Bogor sekitar 540rb, yang tidak cocok dengan keduanya. Jangan diam-diam diubah.
-- **Angka `transport_luar` yang diisi manual lewat Admin selalu MENANG** atas hasil hitungan,
-  dan ditandai `(manual)` di panel admin. Itu pintu keluar kalau rumusnya tidak cocok untuk
-  satu provinsi.
-- Sengaja **dihitung live di frontend, tidak disimpan** sebagai angka mati. Jadi mengubah
-  `faktor_transport` langsung berpengaruh ke 34 provinsi sekaligus tanpa hitung ulang.
-  Jangan "optimasi" ini jadi kolom tersimpan.
-- Tabel SBM itu cuma memuat **34 provinsi**. Empat provinsi pemekaran Papua (Papua Barat Daya,
-  Papua Tengah, Papua Selatan, Papua Pegunungan) `taksi`-nya 0 dan ditandai belum lengkap.
-  Mungkin ada di hal. 86 yang belum pernah dibaca.
+**1. Tarif per kota — `keg_transport_kota`.** Jakarta↔Bodetabek punya tabel SBM sendiri
+("Transportasi dari DKI Jakarta ke Kabupaten/Kota Sekitar", satuannya *one way*, diklaim PP).
+Angkanya **TIDAK bisa diturunkan** dari tarif taksi provinsi — Depok PP 496rb malah lebih
+kecil dari Jakarta PP 500rb. Jadi harus disimpan. Terisi dari SPJ: bogor 540rb, depok 496rb,
+bekasi 512rb, tangerang selatan 516rb. Dicocokkan dengan `indexOf` huruf kecil, **nama
+terpanjang menang** (biar "tangerang selatan" tidak kalah sama "tangerang"). Kota yang belum
+terdaftar jatuh ke jalur 3 — tambahkan lewat Admin → Tarif transport → Tambah kota.
+
+**2. Dalam kota** — `transport_dalam`, Jakarta 170rb. Ini yang bikin dinas Jakarta kecil:
+homebase-nya Jakarta, jadi tidak ada taksi dua ujung.
+
+**3. Luar provinsi** — `(taksi[provinsi_basis] + taksi[prov]) × faktor_transport`.
+`keg_sbm.taksi` = tarif kediaman↔terminal/bandara, PMK 32/2025 bagian 16 hal. 85, satuan
+Orang/Kali = sekali jalan. **`faktor_transport` = 2** (PP tiap ujung), terbukti tiga kali:
+
+| SPD | hitungan | di SPJ |
+|---|---|---|
+| Bali, 07/10/2026 | (250+219)×2 | 938.000 ✓ |
+| NTT, 20/07/2026 | (250+105)×2 | 710.000 ✓ |
+| Jawa Timur, 15/04/2026 | (250+225)×2 | 950.000 ✓ |
+
+Catatan lain yang mengikat:
+- **Angka `transport_luar` manual lewat Admin selalu MENANG** atas hitungan jalur 3, ditandai
+  `(manual)`. Pintu keluar kalau satu provinsi tidak cocok.
+- Jalur 3 **dihitung live, tidak disimpan**. Mengubah `faktor_transport` langsung kena ke 34
+  provinsi sekaligus. Jangan "optimasi" jadi kolom tersimpan.
+- Tabel taksi SBM cuma **34 provinsi**. Empat pemekaran Papua `taksi`-nya 0, ditandai belum
+  lengkap. Mungkin ada di hal. 86 yang belum pernah dibaca.
+- Kolom "Transportasi" di SPJ **kadang berisi tiket pesawat riil** (ada satu 3.373.760).
+  Itu penggantian kuitansi, bukan yang masuk kantong — sengaja TIDAK dimodelkan.
 - `uang_saku_fullboard` bisa diubah dari Admin → Pengaturan skor (SBM ganti tiap tahun).
 
-Tes: `t14.js` (hitungan transport, faktor, angka manual, provinsi tanpa tarif) dan `t13.js`
-(lima contoh nyata). Jalankan dua-duanya di `index.js` DAN `ios.js`.
+**Dua catatan SPJ yang belum terjelaskan** — jangan dipaksa cocok, tanya Ibot dulu:
+- 15/06/2026 Bekasi 1 hari, uang harian **130.000** (angka fullboard) padahal pulang hari.
+- 10/05/2026 Banten 2 hari, uang harian **370.000** = satu hari saja, bukan dua.
+
+Tes: `t15.js` mengadu rumus ke 10 catatan SPJ asli; `t14.js` hitungan transport & faktor;
+`t13.js` lima contoh awal. Jalankan ketiganya di `index.js` DAN `ios.js`.
 
 Diverifikasi terhadap lima contoh nyata dari Ibot (Okt 2026): meeting Jakarta 170rb,
 non-meeting Jakarta 380rb, meeting Bogor 540rb, produksi konten Bogor 970rb, dan 3 hari
