@@ -831,7 +831,7 @@ function viewCatat(){
   function cell(k){
     var f=fotoDi(k.id), nf=f.length, nd=PIN?dokDi(k.id).length:0;
     return '<div class="cell" data-aksi="detail" data-v="'+k.id+'">'+
-      (nf?'<img class="kthumb" data-fpath="'+esc((fotoSampul(k.id)||f[0]).path)+'" alt="">'
+      (nf?'<img class="kthumb" width=46 height=46 loading=lazy decoding=async data-fpath="'+esc((fotoSampul(k.id)||f[0]).path)+'" alt="">'
          :'<span class="kthumb kosong" title="belum ada foto"></span>')+
       '<div class="tx">'+
       (nd?'<span class="klink" title="'+nd+' dokumen">'+IKON_LINK+"</span>":"")+

@@ -315,6 +315,11 @@ Tes: `t15.js` (aturan lengkap + catatan SPJ asli), `t16.js` (dua dunia), `t14.js
 (hitungan transport & faktor), `t13.js` (lima contoh awal). Jalankan semuanya di
 `index.js` DAN `ios.js`.
 
+**Semua tes WAJIB membaca file dari `process.argv[2]`** (`index.js` / `ios.js`), yang
+diperbarui `ekstrak.js` dari HTML terkini. `t1.js` dulu membaca `app.js` — salinan lama
+yang tidak ikut diekstrak — jadi berbulan-bulan menguji kode basi tanpa ketahuan.
+`t1_ios.js` sudah dilebur ke `t1.js`. Jangan bikin tes yang membaca nama file tetap.
+
 Diverifikasi terhadap lima contoh nyata dari Ibot (Okt 2026): meeting Jakarta 170rb,
 non-meeting Jakarta 380rb, meeting Bogor 540rb, produksi konten Bogor 970rb, dan 3 hari
 nginap dengan meeting di hari kedua. Kelimanya cocok persis. **Kalau mengubah rumus, jalankan
@@ -382,6 +387,11 @@ bisa digeser atau taskbar — dia buka ini dari HP.
 ### Kerapatan daftar
 Target sekitar 6-7 kartu per layar HP, rapat tapi masih nyaman diketuk. Aturan yang menjaga itu:
 
+- **Thumbnail WAJIB `loading=lazy decoding=async width=46 height=46`.** Bucket `bukti`
+  menyimpan foto ASLI (sampai 2 MB per file) dan thumbnail memakai URL yang sama — tidak
+  ada versi kecil. Tanpa `lazy`, membuka daftar berarti mengunduh puluhan megabita
+  sekaligus di HP. Kalau suatu saat transformasi gambar Supabase aktif, tambahkan
+  `?width=92&quality=60` di URL tanda tangan dan ini jadi tidak terlalu genting.
 - **Slot foto SELALU ada** (46px), terisi thumbnail atau `kthumb kosong` yang transparan
   dengan garis tipis. Gunanya dua: tepi kiri teks jadi rata (tanpa ini daftarnya bergerigi
   dan capek dibaca), dan slot kosong itu SENDIRI yang menandakan belum ada foto.
