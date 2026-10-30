@@ -67,7 +67,6 @@ yang bisa dibaca anon langsung. Lihat bagian "Sandi tim" di bawah.
   `kota` (tujuan terpilih, nullable)
 - `keg_penugasan` — kegiatan_id + anggota_id saja (tidak ada kolom peran)
 - `keg_foto` — bukti dokumentasi: kegiatan_id, path (unik), keterangan, dibuat, `sampul` bool
-- `keg_dokumen` — link dokumen & folder Drive: kegiatan_id, url, nama, dibuat. **ADMIN ONLY**
 - `keg_transport_kota` — daftar tujuan: kota, provinsi, tarif PP (0 = at-cost), urutan. ADMIN ONLY
 - `keg_config` — PIN + faktor skor. View `keg_config_public` = config tanpa PIN.
 
@@ -141,28 +140,23 @@ atau langsung, dengan jalur langsung jatuh ke Edge Function kalau ditolak. Ini y
 urutan deploy tidak bisa salah. Ada tes untuk ketiga keadaan — jangan sederhanakan tanpa
 menjalankannya.
 
-### Link dokumen & folder Drive — admin only
-`keg_dokumen` TIDAK boleh dibaca anon: RLS aktif tanpa policy select dan semua grant dicabut,
-jadi tabel ini tidak ada di REST. Dibaca HANYA lewat `keg_daftar_dokumen(p_pin)`; ditulis lewat
-`keg_simpan_dokumen` / `keg_hapus_dokumen`.
+### Link dokumen & folder Drive — SUDAH DIBUANG (30 Okt 2026)
+Fitur tempel-link ke dokumen/folder Drive **dihapus total** atas keputusan Ibot: semangat
+app ini rekap perjalanan dinas, bukan administrasi persuratan. Yang ikut hilang:
+`keg_dokumen` + tiga fungsinya, `DOKUMEN`/`muatDokumen`/`dokHTML`/`formDokumen`/`dokDi`/
+`urlAman`/`ringkasUrl`/`tebakNama`, ikon rantai `IKON_LINK` + class `.klink` di kartu, dan
+tes `t3.js`/`t9.js`. `27-buang-dokumen.sql` **MENGGANTI NAMA** tabelnya jadi
+`keg_dokumen_arsip`, tidak DROP — datanya utuh kalau suatu saat dicari.
 
-**Alasannya penting:** app tidak punya login, jadi apa pun yang kebaca anon = kebaca publik.
-Isi dokumen memang dijaga Google Drive, tapi JUDUL surat dinas pun metadata sensitif. Jangan
-pernah memindahkan link ini jadi kolom di `keg_kegiatan` — tabel itu kebaca anon.
+**Jangan hidupkan lagi tanpa diminta.** Kalau toh diminta: link Drive "anyone with link"
+berarti bocornya URL = bocornya dokumen, dan judul surat dinas pun metadata sensitif, jadi
+tabelnya WAJIB admin-only (RLS tanpa policy select, grant dicabut, dibaca cuma lewat fungsi
+ber-PIN) dan URL divalidasi dua lapis (`^https://` di SQL, cek lagi di frontend supaya
+`javascript:` tidak pernah jadi href).
 
-Di app: `DOKUMEN` dimuat oleh `muatDokumen()` saat login/`muat()` dan dikosongkan saat logout.
-**JANGAN `return muatDokumen()` di tengah `muat()`** — itu melewati `stat()` dan `render()`
-sehingga app nyangkut di "Memuat…" bagi siapa pun yang PIN-nya tersimpan. Rantai dengan
-`.then()` supaya render selalu jalan. Ada tes khusus (`muat()` wajib memanggil render di mode
-lihat, mode admin, dan saat fungsi dokumen error).
-`dokHTML()` mengembalikan string kosong kalau `PIN` null. Penanda "link" di daftar juga hanya
-muncul saat admin. URL divalidasi dua lapis: `^https://` di fungsi SQL saat simpan, dan
-`urlAman()` di frontend saat render — yang bukan https ditampilkan sebagai teks, bukan `<a>`,
-supaya `javascript:` tidak pernah jadi href.
-
-Keputusan: pakai tempel-link, BUKAN Google Picker. Picker butuh setup Cloud Console (OAuth
-client, origin, scope `drive.file`) dan token yang mati tiap jam — ditunda sampai tempel-link
-terbukti kurang. Izin akses dokumen tetap diurus Drive, bukan app ini.
+**Pengetatan keamanan TIDAK ikut dicabut.** Fitur ini memang pemicunya, tapi foto kegiatan
+sudah cukup jadi alasan sendiri. Jangan kembalikan grant select anon atau policy
+`keg_bukti_read`.
 
 **Daftar kegiatan menampilkan thumbnail foto pertama**, jadi tanda tangannya WAJIB dibatch —
 POST `/storage/v1/object/sign/bukti` (tanpa path) body `{"expiresIn":3600,"paths":[…]}` lewat
@@ -423,15 +417,9 @@ Target sekitar 6-7 kartu per layar HP, rapat tapi masih nyaman diketuk. Aturan y
   `*`), sisanya jadi `+N lagi` dengan class `lbh` yang redup. Daftar 12 nama sebelumnya makan
   3 baris. Nama lengkap tetap ada di layar detail.
 - **Kartu daftar tidak punya baris chip sama sekali.** Chip "N foto" dibuang karena
-  thumbnail sudah menandakan adanya foto; jumlah persisnya ada di layar detail. Chip teks
-  "link" diganti ikon rantai (`IKON_LINK`, SVG inline, class `klink`, `float:right` di dalam
-  blok teks) di pojok kanan atas kartu, hanya untuk admin. Jangan kembalikan baris chip —
-  itu satu baris penuh di setiap kartu untuk informasi yang sudah terwakili.
-- Ikon memakai `float:right` dan ditaruh SEBELUM judul, bukan `position:absolute`. Di varian
-  Modern ada chevron di kanan yang vertikal di tengah; absolut akan bertabrakan dengannya.
-- URL dokumen ditampilkan lewat `ringkasUrl()` dan dikunci satu baris (class `satu`).
-  Jangan pernah `word-break:break-all` pada URL — link Drive panjang dan akan membungkus
-  dua-tiga baris. `href` tetap memakai URL asli yang utuh.
+  thumbnail sudah menandakan adanya foto; jumlah persisnya ada di layar detail. Jangan
+  kembalikan baris chip — itu satu baris penuh di setiap kartu untuk informasi yang sudah
+  terwakili. (Ikon rantai dokumen juga sudah hilang bersama fiturnya.)
 - **`<fieldset class="grp">` WAJIB punya `min-width:0`.** Fieldset tidak mau menyusut di
   bawah lebar isinya walaupun anaknya sudah `min-width:0` — ini perilaku khusus elemen itu,
   bukan bug flexbox. Tanpa aturan ini, satu baris `white-space:nowrap` (URL dokumen) melebarkan
@@ -483,10 +471,10 @@ di salah satu varian.
 1. Reminder H-1 lewat n8n miliknya (sudah jalan di Sumopod, sudah terbayar)
 2. Feed kalender `.ics`
 3. Target pemerataan ("idealnya tiap orang X poin/triwulan") + saran otomatis
-4. Link surat tugas / catatan hasil kegiatan
 
 **Sudah ditolak, jangan diusulkan lagi:** approval workflow, hitungan anggaran/SPPD, upload
-dokumen, status kegiatan, tabel cuti, dropdown peran per orang, kolom "butuh berapa orang".
+dokumen, **link dokumen/folder Drive** (sempat dibuat, lalu dibuang), status kegiatan, tabel
+cuti, dropdown peran per orang, kolom "butuh berapa orang".
 Semua ditolak dengan alasan sama: nambah kerjaan input tanpa nambah jawaban.
 
 ## Batas akses database
