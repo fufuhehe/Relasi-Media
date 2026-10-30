@@ -63,11 +63,12 @@ yang bisa dibaca anon langsung. Lihat bagian "Sandi tim" di bawah.
 - `keg_anggota` — nama, kategori (`tim`/`tu`), aktif
 - `keg_jenis` — master daftar kegiatan: nama, tier, tingkat_beban. **Bobot nempel di sini.**
 - `keg_kegiatan` — satu baris = sekali jalan. jenis_id, judul, tanggal (nullable),
-  jumlah_hari, lokasi, tier, tingkat_beban, ketua_id, catatan
+  jumlah_hari, lokasi, tier, tingkat_beban, ketua_id, catatan, provinsi, hari_meeting,
+  `kota` (tujuan terpilih, nullable)
 - `keg_penugasan` — kegiatan_id + anggota_id saja (tidak ada kolom peran)
 - `keg_foto` — bukti dokumentasi: kegiatan_id, path (unik), keterangan, dibuat, `sampul` bool
 - `keg_dokumen` — link dokumen & folder Drive: kegiatan_id, url, nama, dibuat. **ADMIN ONLY**
-- `keg_transport_kota` — tarif transport PP per kota (Bodetabek), kunci huruf kecil. ADMIN ONLY
+- `keg_transport_kota` — daftar tujuan: kota, provinsi, tarif PP (0 = at-cost), urutan. ADMIN ONLY
 - `keg_config` — PIN + faktor skor. View `keg_config_public` = config tanpa PIN.
 
 Anon **hanya SELECT**; grant INSERT/UPDATE/DELETE sudah dicabut. Semua tulis lewat fungsi
@@ -196,11 +197,11 @@ hari_biasa    = hari - hari_meeting
 luar          = tier != 'dalam_kota'
 nginap        = tier == 'luar_inap'
 
-uang harian = hari_biasa   x (luar ? uang_harian_luar[prov] : uang_harian_dalam[prov])
-            + hari_meeting x (nginap ? uang_saku_fullboard : 0)
+uang harian = hari_biasa x (luar ? uang_harian_luar[prov] : uang_harian_dalam[prov])
+              hari_meeting dapat NOL
 
-satuan transport = luar ? transport_luar[prov] : transport_dalam[prov]
-transport        = nginap ? satuan : satuan x hari
+transport = tujuan terpilih ? tarif tujuan : (dalam kota ? transport_dalam : rumus provinsi)
+            SEKALI per perjalanan, tidak dikali hari
 ```
 
 **Hanya yang masuk kantong.** Hotel dan tiket TIDAK dihitung — itu diganti sesuai kuitansi,
@@ -208,100 +209,106 @@ tidak ada yang untung dari situ. Memasukkannya akan membuat orang yang kebetulan
 Papua terlihat "kaya" padahal cuma tiketnya mahal.
 
 **Aturan yang gampang keliru:**
-- Paket meeting pulang hari → uang harian NOL (uang saku fullday dihapus di SBM 2026).
-  `uang_saku_fullboard` 130rb hanya untuk yang MENGINAP.
-- **Transport dibayar SEKALI per perjalanan**, tidak pernah dikali jumlah hari. Satu SPD =
-  satu klaim transport. (Dugaan awal "berulang tiap hari kalau pulang-hari" SALAH dan sudah
-  dikoreksi — lihat bukti di bawah.)
-- `transport_luar` diukur DARI JAKARTA ke provinsi itu, jadi satu angka per provinsi tujuan.
-
 Tarif ada di tabel `keg_sbm` (38 provinsi, admin-only, ikut dikirim `keg_data`). Uang harian
 sudah terisi dari SBM. Yang belum terisi ditandai di form dan di panel admin, bukan diam-diam
 dihitung nol.
 
 ### Transport — TIGA jalur, diurut begini
-Dasar bukti: **Daftar Nominatif SPD 2026 Ibot** (57 catatan, total Rp 41.563.760,
-transport Rp 28.763.760, uang harian Rp 12.800.000). Itu dokumen resmi, bukan ingatan.
-Semua angka di bawah berasal dari sana. **Jangan menambah komponen yang tidak ada
-angkanya di dokumen.**
+Dasar bukti: **Daftar Nominatif SPD 2026 Ibot** (57 catatan, Rp 41.563.760) dan
+**PMK 32/2025 hal. 68** untuk tabel Bodetabek. Itu dokumen resmi, bukan ingatan.
+**Jangan menambah komponen yang tidak ada angkanya di dokumen.**
 
 ```
-1. tarifKota(lokasi)   — nama kota kebaca di kolom lokasi  → pakai ini
-2. transport_dalam     — tier dalam_kota                   → Jakarta 170rb
-3. transportLuar(prov) — sisanya                           → (taksi asal + taksi tujuan) x 2
+1. keg_kegiatan.kota ada di daftar tujuan  → pakai tarifnya (boleh 0)
+2. tier == 'dalam_kota'                    → transport_dalam, Jakarta 170rb
+3. sisanya                                 → (taksi asal + taksi tujuan) x 2
 ```
 
-**1. Tarif per kota — `keg_transport_kota`.** Jakarta↔Bodetabek punya tabel SBM sendiri
-("Transportasi dari DKI Jakarta ke Kabupaten/Kota Sekitar", satuannya *one way*, diklaim PP).
-Angkanya **TIDAK bisa diturunkan** dari tarif taksi provinsi — Depok PP 496rb malah lebih
-kecil dari Jakarta PP 500rb. Jadi harus disimpan. Terisi dari SPJ: bogor 540rb, depok 496rb,
-bekasi 512rb, tangerang selatan 516rb. Dicocokkan dengan `indexOf` huruf kecil, **nama
-terpanjang menang** (biar "tangerang selatan" tidak kalah sama "tangerang"). Kota yang belum
-terdaftar jatuh ke jalur 3 — tambahkan lewat Admin → Tarif transport → Tambah kota.
+**Transport dibayar SEKALI per perjalanan**, tidak pernah dikali jumlah hari.
+Bukti: Kab. Bekasi 2 hari 512rb, Bali 3 hari 938rb, NTT 3 hari 710rb.
 
-**`tarifKota()` membedakan tiga keadaan, jangan disederhanakan jadi angka saja:**
+**1. Daftar tujuan — `keg_transport_kota`, DIPILIH bukan ditebak.**
+Ini pernah salah besar: versi pertama mencocokkan nama kota dengan membaca kolom
+`lokasi`. Catatan asli isinya nama venue — "Aston Bintaro" — jadi tidak pernah
+kebaca sebagai Tangerang Selatan, jatuh ke jalur 3, dan keluar **Rp 1,47jt padahal
+SPJ-nya Rp 516rb**. Semua tes lulus karena fixture-nya gw karang sendiri dengan
+lokasi yang kebetulan memuat nama kota. **Pelajaran: kalau logika bergantung pada
+isi kolom bebas, ujilah dengan isi kolom yang sebenarnya, bukan karangan.**
 
-| balasan | artinya | akibatnya |
-|---|---|---|
-| `null` | kota tidak terdaftar | jatuh ke jalur 2/3 |
-| `0` | **at-cost** — bensin & tol diganti kuitansi | transport nol, DAN dianggap sudah lengkap |
-| angka | lumpsum PP | dipakai apa adanya |
+Sekarang tujuan dipilih dari satu dropdown (`opsiTujuan`, nilainya `k:<kota>` atau
+`p:<provinsi>`) dan disimpan di `keg_kegiatan.kota`. Tidak ada pencocokan teks lagi
+di frontend; satu-satunya tebakan teks adalah backfill sekali jalan di
+`25-tujuan.sql`, yang hasilnya dicetak untuk ditinjau.
 
-At-cost nol itu disengaja dan sejalan dengan aturan hotel/tiket: yang diganti kuitansi tidak
-masuk kantong, jadi bukan rezeki. Di tempat Ibot, **Karawang dan Bandung selalu at-cost —
-apa pun kendaraannya, naik kereta pun tetap at-cost**, bukan cuma kalau bawa mobil sendiri.
-**Serang** juga diisi 0 atas dasar SPD 10/05/2026; kalau ternyata ada yang lumpsum, ubah dari
-Admin. Ketiganya sudah ikut terisi di `24-transport-kota.sql`.
+Tarif Bodetabek = angka *one way* PMK hal. 68 **dikali 2** (diklaim Pergi/Pulang),
+dan cocok persis dengan SPJ:
 
-Karena tarif 0 punya arti, `keg_set_transport_kota` MENYIMPAN 0 (tidak lagi memperlakukannya
-sebagai perintah hapus); hapus baris punya fungsi sendiri, `keg_hapus_transport_kota`.
+| tujuan | one way | PP | SPJ |
+|---|---|---|---|
+| Kota/Kab. Bekasi | 256.000 | 512.000 | ✓ |
+| Kota/Kab. Bogor | 270.000 | 540.000 | ✓ |
+| Kota Depok | 248.000 | 496.000 | ✓ |
+| Kota Tangerang & Tangsel | 258.000 | 516.000 | ✓ |
+| Kab. Tangerang | 279.000 | 558.000 | — |
+| Kepulauan Seribu | 386.000 | 772.000 | — |
 
-**2. Dalam kota** — `transport_dalam`, Jakarta 170rb. Ini yang bikin dinas Jakarta kecil:
-homebase-nya Jakarta, jadi tidak ada taksi dua ujung.
+**Tarif 0 = AT-COST**, bukan "belum diisi": bensin, tol, atau tiket diganti sesuai
+kuitansi, jadi tidak ada yang masuk kantong — aturan yang sama dengan hotel dan tiket
+pesawat. Karawang, Bandung dan Serang diisi 0. Karawang & Bandung at-cost **apa pun
+kendaraannya**, naik kereta pun. Karena 0 punya arti, tujuan yang ketemu di daftar
+selalu `lengkap:true` dan tidak ditandai merah.
+
+Provinsi untuk uang harian ikut tujuan terpilih (`provKeg` membaca `kota.provinsi`
+dulu), jadi memilih "Kota Depok" otomatis memakai uang harian Jawa Barat.
+
+**2. Dalam kota** — `transport_dalam`, Jakarta 170rb. Ini yang bikin dinas Jakarta
+kecil: homebase-nya Jakarta, tidak ada taksi dua ujung.
 
 **3. Luar provinsi** — `(taksi[provinsi_basis] + taksi[prov]) × faktor_transport`.
-`keg_sbm.taksi` = tarif kediaman↔terminal/bandara, PMK 32/2025 bagian 16 hal. 85, satuan
-Orang/Kali = sekali jalan. **`faktor_transport` = 2** (PP tiap ujung), terbukti tiga kali:
-
-| SPD | hitungan | di SPJ |
-|---|---|---|
-| Bali, 07/10/2026 | (250+219)×2 | 938.000 ✓ |
-| NTT, 20/07/2026 | (250+105)×2 | 710.000 ✓ |
-| Jawa Timur, 15/04/2026 | (250+225)×2 | 950.000 ✓ |
+`keg_sbm.taksi` dari PMK 32/2025 hal. 85, satuan Orang/Kali = sekali jalan.
+**`faktor_transport` = 2**, terbukti tiga kali: Bali (250+219)×2 = 938rb,
+NTT (250+105)×2 = 710rb, Jatim (250+225)×2 = 950rb.
 
 Catatan lain yang mengikat:
-- **Angka `transport_luar` manual lewat Admin selalu MENANG** atas hitungan jalur 3, ditandai
-  `(manual)`. Pintu keluar kalau satu provinsi tidak cocok.
-- Jalur 3 **dihitung live, tidak disimpan**. Mengubah `faktor_transport` langsung kena ke 34
-  provinsi sekaligus. Jangan "optimasi" jadi kolom tersimpan.
-- Tabel taksi SBM cuma **34 provinsi**. Empat pemekaran Papua `taksi`-nya 0, ditandai belum
-  lengkap. Mungkin ada di hal. 86 yang belum pernah dibaca.
+- **`transport_luar` manual lewat Admin MENANG** atas hitungan jalur 3, ditandai `(manual)`.
+- Jalur 3 **dihitung live, tidak disimpan**. Jangan "optimasi" jadi kolom tersimpan.
+- Tabel taksi cuma **34 provinsi**; empat pemekaran Papua `taksi`-nya 0, ditandai belum lengkap.
 - Kolom "Transportasi" di SPJ **kadang berisi tiket pesawat riil** (ada satu 3.373.760).
-  Itu penggantian kuitansi, bukan yang masuk kantong — sengaja TIDAK dimodelkan.
-- `uang_saku_fullboard` bisa diubah dari Admin → Pengaturan skor (SBM ganti tiap tahun).
+  Penggantian kuitansi, bukan yang masuk kantong — sengaja TIDAK dimodelkan.
+- `rinciJalan` mengembalikan **`asal`**, kalimat pendek dari mana angka transport datang
+  ("tarif Kota Depok" / "hitungan provinsi Bali" / "at-cost ke Bandung…"). Ditampilkan di
+  form catat DAN layar detail. **Jangan dihapus** — bug 1,47jt di atas lolos justru karena
+  angkanya salah diam-diam.
 
-### Patokannya KONSUMSI DITANGGUNG, bukan kata "meeting"
-Dua catatan SPJ yang sempat tidak cocok ternyata menunjukkan ini — keduanya bukan paket
-meeting menurut Ibot:
+### Uang harian — hari yang ditanggung panitia dapat NOL
+Aturan dari Ibot (30 Okt 2026), menggantikan model uang saku fullboard:
 
-- **10/05/2026 Banten, 2 hari, uang harian 370.000** = satu hari saja (Banten 370rb/hari).
-  Ibot jadi **narasumber** di acara Pemprov Banten; hari itu makannya ditanggung panitia,
-  jadi uang hariannya nol. Modelnya sudah benar — yang salah cuma labelnya.
-- **15/06/2026, 1 hari, uang harian 130.000** = angka uang saku fullboard. Kemungkinan
-  besar dia peserta di acara orang lain yang paket fullboard. **Belum terpecahkan**: app
-  hanya memberi 130rb kalau tier `luar_inap`, jadi catatan semacam ini meleset 130rb.
-  Sengaja TIDAK ditambal dengan field baru — satu dari 57 catatan, nilainya kecil, dan
-  menambah field melanggar filosofi "sesederhana nyatat di kertas". Angkat lagi kalau
-  ternyata sering.
+```
+uang harian = (jumlah_hari - hari_meeting) x tarif provinsi
+```
 
-Karena itu label `hari_meeting` di UI berbunyi **"Berapa hari yang makannya ditanggung
-panitia?"**, dan pilihan di master jenis berbunyi "Ya, ditanggung panitia (paket meeting /
-jadi narasumber)". Jangan dikembalikan ke kata "paket meeting" saja — Ibot akan menjawab
-"bukan meeting" untuk hari narasumber dan uang hariannya jadi dobel. Nama kolom di database
-tetap `hari_meeting` / `paket_meeting` supaya tidak perlu migrasi.
+- Hari yang konsumsinya ditanggung panitia → **nol, titik**. Tidak ada lagi 130rb
+  untuk yang menginap; `uang_saku_fullboard` sudah dibuang dari panel admin.
+- 3 hari dengan meeting di hari kedua → uang harian **2 hari**. Meeting 3 hari → **0**.
+- Patokannya **konsumsi ditanggung**, BUKAN kata "meeting". Waktu Ibot jadi narasumber
+  di acara instansi lain, makannya ditanggung panitia, jadi hari itu nol juga —
+  dibuktikan SPD 10/05/2026 Banten 2 hari yang uang hariannya cuma 370rb (satu hari).
+- Karena itu label di UI berbunyi **"Berapa hari yang makannya ditanggung panitia?"**
+  dan pilihan di master jenis "Ya, ditanggung panitia (paket meeting / jadi narasumber)".
+  **Jangan dikembalikan ke kata "paket meeting" saja** — Ibot akan menjawab "bukan
+  meeting" untuk hari narasumber dan uang hariannya jadi dobel. Nama kolom di database
+  tetap `hari_meeting` / `paket_meeting` supaya tidak perlu migrasi.
 
-Tes: `t15.js` mengadu rumus ke 10 catatan SPJ asli; `t14.js` hitungan transport & faktor;
-`t13.js` lima contoh awal. Jalankan ketiganya di `index.js` DAN `ios.js`.
+### Dua dunia saat deploy
+GitHub Pages terbit duluan, SQL dijalankan belakangan. Karena itu `simpanKegiatan()`
+mencoba `keg_simpan_kegiatan` dengan `p_kota`; kalau fungsinya belum kenal parameter itu
+ia **mengulang tanpa `p_kota`** supaya mencatat tidak mati total. `DB.kota` juga default
+`[]`, dan kegiatan tanpa properti `kota` jatuh ke jalur provinsi. Ada tes (`t16.js`) —
+jangan sederhanakan tanpa menjalankannya.
+
+Tes: `t15.js` (aturan lengkap + catatan SPJ asli), `t16.js` (dua dunia), `t14.js`
+(hitungan transport & faktor), `t13.js` (lima contoh awal). Jalankan semuanya di
+`index.js` DAN `ios.js`.
 
 Diverifikasi terhadap lima contoh nyata dari Ibot (Okt 2026): meeting Jakarta 170rb,
 non-meeting Jakarta 380rb, meeting Bogor 540rb, produksi konten Bogor 970rb, dan 3 hari

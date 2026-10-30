@@ -357,7 +357,16 @@ function namaKeg(k){
   return k.judul?n+" \u2014 "+k.judul:n;}
 
 /* ---------- skor ---------- */
+function kotaKeg(k){
+  /* Tujuan khusus (Bodetabek dll) DIPILIH di form, bukan ditebak dari teks
+     lokasi. Versi lama menebak, dan "Aston Bintaro" tidak pernah kebaca
+     sebagai Tangerang Selatan -- hasilnya Rp 1,47jt padahal SPJ Rp 516rb. */
+  if(!k||!k.kota) return null;
+  for(var i=0;i<DB.kota.length;i++) if(DB.kota[i].kota===k.kota) return DB.kota[i];
+  return null;}
 function provKeg(k){
+  var t=kotaKeg(k);
+  if(t&&t.provinsi) return t.provinsi;
   return (k&&k.provinsi)||DB.config.provinsi_basis||"DKI Jakarta";}
 function tarif(nama){
   for(var i=0;i<DB.sbm.length;i++) if(DB.sbm[i].provinsi===nama) return DB.sbm[i];
@@ -369,34 +378,35 @@ function transportLuar(t){
   var a=num(asal&&asal.taksi,0), b=num(t.taksi,0);
   if(!b) return 0;
   return (a+b)*Math.max(1,cfg("faktor_transport",1));}
-function tarifKota(lok){
-  /* Jakarta->Bodetabek punya tarif sendiri per kota, tidak bisa dihitung
-     dari tarif provinsi. Yang namanya paling panjang menang, supaya
-     "tangerang selatan" tidak kalah sama "tangerang".
-     Balasannya null kalau kotanya tidak terdaftar (jatuh ke rumus provinsi),
-     dan ANGKA kalau terdaftar - termasuk 0, yang artinya at-cost: bensin
-     dan tol diganti sesuai kuitansi, tidak ada yang masuk kantong. */
-  if(!lok) return null;
-  var s=String(lok).toLowerCase(), nilai=null, pjg=-1;
-  for(var i=0;i<DB.kota.length;i++){
-    var n=String(DB.kota[i].kota||"").toLowerCase();
-    if(n&&s.indexOf(n)>=0&&n.length>pjg){pjg=n.length;nilai=num(DB.kota[i].tarif,0);}}
-  return nilai;}
 function rinciJalan(k){
+  var kt=kotaKeg(k);
   var t=tarif(provKeg(k));
   var hari=Math.max(1,num(k.jumlah_hari,1));
   var hm=Math.min(Math.max(0,num(k.hari_meeting,0)),hari), hn=hari-hm;
   var luar=(k.tier!=="dalam_kota");
-  if(!t) return {uh:0,transport:0,total:0,hn:hn,hm:hm,lengkap:false,tarifAda:false,kota:false};
-  var uh=hn*num(luar?t.uang_harian_luar:t.uang_harian_dalam,0)
-        +hm*(nginap(k)?cfg("uang_saku_fullboard",130000):0);
-  var kota=luar?tarifKota(k.lokasi):null;
+  if(!t) return {uh:0,transport:0,total:0,hn:hn,hm:hm,
+                 lengkap:false,tarifAda:false,kota:!!kt,asal:""};
+  /* Hari yang ditanggung panitia TIDAK dapat uang harian sama sekali.
+     3 hari dengan meeting di hari kedua -> uang harian 2 hari.
+     3 hari meeting semua -> nol. */
+  var uh=hn*num(luar?t.uang_harian_luar:t.uang_harian_dalam,0);
   /* Transport dibayar SEKALI per perjalanan, tidak dikali jumlah hari.
      Dibuktikan di SPJ: Bekasi 2 hari = 512rb, Bali 3 hari = 938rb. */
-  var satuan=(kota!==null)?kota:(luar?transportLuar(t):num(t.transport_dalam,0));
-  return {uh:uh,transport:satuan,total:uh+satuan,hn:hn,hm:hm,
-          lengkap:satuan>0||kota===0,tarifAda:true,kota:kota!==null};}
-function nginap(k){return k&&k.tier==="luar_inap";}
+  var transport, asal, lengkap;
+  if(kt){
+    transport=num(kt.tarif,0);
+    asal=transport?("tarif "+kt.kota):("at-cost ke "+kt.kota+", tidak masuk kantong");
+    lengkap=true;   /* 0 di daftar tujuan artinya nol beneran, bukan belum diisi */
+  }else if(!luar){
+    transport=num(t.transport_dalam,0);
+    asal="transport dalam kota "+t.provinsi;
+    lengkap=transport>0;
+  }else{
+    transport=transportLuar(t);
+    asal="hitungan provinsi "+t.provinsi;
+    lengkap=transport>0;}
+  return {uh:uh,transport:transport,total:uh+transport,hn:hn,hm:hm,
+          lengkap:lengkap,tarifAda:true,kota:!!kt,asal:asal};}
 function skorJalan(k){return rinciJalan(k).total;}
 function skorBeban(k,ketua){
   var hari=Math.max(1,num(k.jumlah_hari,1));
@@ -841,14 +851,14 @@ function viewCatat(){
   return h;}
 
 function caraHitung(){
-  var fk=cfg("faktor_ketua",1.2), fb=cfg("uang_saku_fullboard",130000);
+  var fk=cfg("faktor_ketua",1.2);
   var t=tarif(DB.config.provinsi_basis||"DKI Jakarta")||{};
   return '<p>Ada <b>dua ukuran terpisah</b>, sengaja tidak digabung — biar keliatan siapa yang dapetnya kecil tapi bebannya berat.</p>'+
     '<fieldset class="grp"><legend>Yang diterima (uang harian + transport)</legend>'+
       '<div class="meta">Mengikuti SBM Kemenkeu (PMK 32/2025, TA 2026). Hanya komponen yang masuk kantong — hotel dan tiket tidak dihitung karena diganti sesuai kuitansi.</div>'+
       "<table>"+
       "<tr><td>Uang harian, hari biasa</td><td class=n>tarif provinsi × hari</td></tr>"+
-      "<tr><td>Uang harian, hari ditanggung panitia</td><td class=n>"+rupiah(fb)+" kalau menginap, selain itu 0</td></tr>"+
+      "<tr><td>Uang harian, hari ditanggung panitia</td><td class=n>0</td></tr>"+
       "<tr><td>Transport</td><td class=n>sekali PP per perjalanan</td></tr>"+
       "<tr><td>Transport Bodetabek</td><td class=n>tarif khusus per kota</td></tr></table>"+
       '<div class="meta" style="margin-top:6px">Contoh '+esc(DB.config.provinsi_basis||"DKI Jakarta")+
@@ -936,10 +946,11 @@ function viewAdmin(){
     DB.jenis.length);
   h+=adm("sbm","Tarif transport",
     '<div class="note" style="margin:0 6px 7px">Uang harian sudah terisi dari SBM. Yang perlu kamu isi cuma transport.</div>'+
-    '<div class="note" style="margin:0 6px 7px"><b>Tarif khusus per kota</b> (Bodetabek) \u2014 dipakai duluan kalau namanya kebaca di lokasi.</div>'+
+    '<div class="note" style="margin:0 6px 7px"><b>Daftar tujuan</b> \u2014 muncul di dropdown waktu mencatat, dipakai duluan sebelum hitungan provinsi.</div>'+
     '<div class="list">'+DB.kota.map(function(x){
       return '<div class="cell"><div class="tx"><div class="tl">'+esc(x.kota)+"</div>"+
-        '<div class="sb">'+(num(x.tarif,0)?rupiah(num(x.tarif,0))+" PP":"at-cost, tidak masuk kantong")+"</div></div>"+
+        '<div class="sb">'+(num(x.tarif,0)?rupiah(num(x.tarif,0))+" PP":"at-cost, tidak masuk kantong")+
+          (x.provinsi?" \u00b7 "+esc(x.provinsi):"")+"</div></div>"+
         '<button class="kecil" data-aksi="kota-edit" data-v="'+esc(x.kota)+'">Ubah</button></div>';}).join("")+"</div>"+
     '<div class="aksi" style="margin:4px 6px 10px"><button data-aksi="kota-baru">+ Tambah kota</button></div>'+
     '<div class="list">'+DB.sbm.map(function(x){
@@ -960,7 +971,6 @@ function viewAdmin(){
     DB.anggota.length);
   var c=[["nama_tim","Judul app","text"],
     ["faktor_transport","Pengali transport terminal (2 = PP, sesuai SPJ)","number"],
-    ["uang_saku_fullboard","Uang saku paket meeting nginap (Rp)","number"],
     ["faktor_ketua","Faktor beban ketua","number"]];
   h+=adm("skor","Pengaturan skor &amp; PIN",'<div style="padding:2px 6px 4px">'+
     c.map(function(x){return "<label>"+x[1]+'</label><input data-cfg="'+x[0]+'" type="'+x[2]+'" step="0.1" value="'+esc(DB.config[x[0]]||"")+'">';}).join("")+
@@ -1012,13 +1022,12 @@ function formCatat(){
       Object.keys(TIER).map(function(t){return '<button data-aksi="set-tier" data-v="'+t+'" class="'+(f.tier===t?"tekan":"")+'">'+TIERP[t]+"</button>";}).join("")+"</div>"+
       '<div class="cap" style="margin-top:12px">Tingkat beban</div><div class=seg>'+
       [1,2,3].map(function(n){return '<button data-aksi="set-beban" data-v="'+n+'" class="'+(f.tingkat_beban===n?"tekan":"")+'">'+BEBAN[n]+"</button>";}).join("")+"</div>"+
-      '<div class="cap" style="margin-top:12px">Provinsi</div>'+
-      "<select data-f=provinsi>"+opsiProvinsi(f.provinsi)+"</select>"+
+      '<div class="cap" style="margin-top:12px">Tujuan</div>'+
+      "<select data-f=tujuan>"+opsiTujuan(f.kota,f.provinsi)+"</select>"+
       '<div class="cap" style="margin-top:12px">Berapa hari yang makannya ditanggung panitia?</div>'+
       '<input data-f=hari_meeting type=number min=0 max="'+num(f.jumlah_hari,1)+'" value="'+
         Math.min(num(f.hari_meeting,0),num(f.jumlah_hari,1))+'">'+
-      '<div class="note">Termasuk waktu kamu jadi narasumber di acara orang lain \u2014 patokannya konsumsi ditanggung, bukan kata "meeting". Hari begini tidak dapat uang harian penuh; kalau menginap dapat '+
-        rupiah(cfg("uang_saku_fullboard",130000))+" per hari.</div>"+
+      '<div class="note">Termasuk waktu kamu jadi narasumber di acara orang lain \u2014 patokannya konsumsi ditanggung, bukan kata "meeting". Hari begini <b>tidak dapat uang harian sama sekali</b>. Kegiatan 3 hari dengan meeting di hari kedua = uang harian 2 hari.</div>'+
       rincianHTML(f)+
     "</div></details></div>";
   var r={}; rekap(0).forEach(function(x){r[x.id]=x;});
@@ -1061,14 +1070,24 @@ function rincianHTML(f){
   return '<div class="meta" style="margin-top:8px"><b>'+rupiah(r.total)+" per orang</b> \u2014 "+
     rupiah(r.uh)+" uang harian"+(baris.length?" ("+baris.join(" + ")+")":"")+
     " + "+rupiah(r.transport)+" transport"+
-    (r.lengkap?"":' \u00b7 <span style="color:var(--alert)">transport provinsi ini belum diisi</span>')+
+    (r.asal?" <i>("+esc(r.asal)+")</i>":"")+
+    (r.lengkap?"":' \u00b7 <span style="color:var(--alert)">tarif transport belum diisi</span>')+
     "</div>";}
-function opsiProvinsi(terpilih){
-  var t=terpilih||DB.config.provinsi_basis||"DKI Jakarta";
-  return DB.sbm.map(function(x){
-    return '<option value="'+esc(x.provinsi)+'"'+(x.provinsi===t?" selected":"")+">"+
-      esc(x.provinsi)+(num(x.transport_luar,0)||num(x.transport_dalam,0)?"":" (transport belum diisi)")+
-      "</option>";}).join("");}
+function opsiTujuan(kota,prov){
+  /* Satu dropdown: kota sekitar Jakarta yang tarifnya sudah pasti di atas,
+     provinsi di bawah. Nilainya "k:<kota>" atau "p:<provinsi>". */
+  var h="";
+  if(DB.kota.length)
+    h+='<optgroup label="Sekitar Jakarta">'+DB.kota.map(function(x){
+      return '<option value="k:'+esc(x.kota)+'"'+(kota===x.kota?" selected":"")+">"+
+        esc(x.kota)+" \u2014 "+(num(x.tarif,0)?rupiah(num(x.tarif,0)):"at-cost")+
+        "</option>";}).join("")+"</optgroup>";
+  var t=prov||DB.config.provinsi_basis||"DKI Jakarta";
+  h+='<optgroup label="Provinsi">'+DB.sbm.map(function(x){
+    return '<option value="p:'+esc(x.provinsi)+'"'+((!kota&&x.provinsi===t)?" selected":"")+">"+
+      esc(x.provinsi)+(num(x.transport_luar,0)||num(x.taksi,0)?"":" (transport belum diisi)")+
+      "</option>";}).join("")+"</optgroup>";
+  return h;}
 function bukaForm(k){
   if(!DB.jenis.length){
     bukaModal("Belum ada daftar kegiatan",
@@ -1078,11 +1097,11 @@ function bukaForm(k){
   FORM=k?{id:k.id,jenis_id:k.jenis_id,judul:k.judul,tanggal:k.tanggal,
       jumlah_hari:num(k.jumlah_hari,1),lokasi:k.lokasi,tier:k.tier,
       tingkat_beban:num(k.tingkat_beban,2),ketua_id:k.ketua_id,catatan:k.catatan,
-      provinsi:k.provinsi||"",hari_meeting:num(k.hari_meeting,0),
+      provinsi:k.provinsi||"",kota:k.kota||"",hari_meeting:num(k.hari_meeting,0),
       orang:{},ubahBobot:false}
     :{id:null,jenis_id:null,judul:"",tanggal:"",jumlah_hari:1,lokasi:"",
       tier:"dalam_kota",tingkat_beban:2,ketua_id:null,catatan:"",
-      provinsi:"",hari_meeting:0,orang:{},ubahBobot:false};
+      provinsi:"",kota:"",hari_meeting:0,orang:{},ubahBobot:false};
   if(k) DB.penugasan.forEach(function(p){if(p.kegiatan_id===k.id) FORM.orang[p.anggota_id]=true;});
   MODAL=null; MODAL_KEG=null; gambarLapis();}
 
@@ -1093,6 +1112,9 @@ function bacaForm(){
     if(k==="jenis_id"||k==="ketua_id") FORM[k]=v?parseInt(v,10):null;
     else if(k==="jumlah_hari") FORM[k]=Math.min(60,Math.max(1,parseInt(v,10)||1));
     else if(k==="hari_meeting") FORM[k]=Math.max(0,parseInt(v,10)||0);
+    else if(k==="tujuan"){
+      if(v.slice(0,2)==="k:"){FORM.kota=v.slice(2);FORM.provinsi="";}
+      else {FORM.kota="";FORM.provinsi=v.slice(2);}}
     else FORM[k]=v;});
   var o={};
   el.querySelectorAll("[data-orang]").forEach(function(c){
@@ -1115,7 +1137,8 @@ function detailKegiatan(id){
     '<div class="sub" style="margin:0 0 14px">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+(k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
     '<div class="list"><div class="cell static"><div class="tx">'+
       '<div class="tl">'+TIER[k.tier]+" \u00b7 beban "+BEBAN[k.tingkat_beban].toLowerCase()+"</div>"+
-      '<div class="sb">Diterima <b>'+rupiah(skorJalan(k))+"</b> per orang</div>"+
+      '<div class="sb">Diterima <b>'+rupiah(skorJalan(k))+"</b> per orang"+
+        (rinciJalan(k).asal?" \u00b7 "+esc(rinciJalan(k).asal):"")+"</div>"+
     "</div></div></div>"+
     (k.catatan?'<div class="sect">Catatan</div><div class="list"><div class="cell static"><div class="tx"><div class="sb nm">'+esc(k.catatan).replace(/\n/g,"<br>")+"</div></div></div></div>":"")+
     '<div class="sect">Yang jalan ('+o.length+')</div><div class="list">'+
@@ -1243,9 +1266,13 @@ function formSbm(prov){
 function formKota(nama){
   var x=null;
   for(var i=0;i<DB.kota.length;i++) if(DB.kota[i].kota===nama) x=DB.kota[i];
-  var h='<div class="meta">Tarif Jakarta \u2194 kota ini, sekali perjalanan PP. Dipakai kalau nama kota kebaca di kolom lokasi kegiatan. <b>Isi 0</b> kalau ke sana transportnya at-cost (bensin &amp; tol diganti kuitansi) \u2014 artinya tidak ada yang masuk kantong.</div>'+
-    "<label>Nama kota (huruf kecil)</label>"+
+  var h='<div class="meta">Tarif Jakarta \u2194 tujuan ini, sekali perjalanan PP. Muncul di dropdown Tujuan waktu mencatat. <b>Isi 0</b> kalau transportnya at-cost (bensin, tol, atau tiket diganti kuitansi) \u2014 artinya tidak ada yang masuk kantong.</div>'+
+    "<label>Nama tujuan</label>"+
     '<input id=kNama value="'+esc(x?x.kota:"")+'"'+(x?" readonly":"")+">"+
+    "<label>Provinsi (untuk uang harian)</label><select id=kProv>"+
+    DB.sbm.map(function(p){
+      return '<option value="'+esc(p.provinsi)+'"'+((x&&x.provinsi===p.provinsi)?" selected":"")+">"+
+        esc(p.provinsi)+"</option>";}).join("")+"</select>"+
     "<label>Tarif PP (rupiah)</label>"+
     '<input id=kTarif type=number min=0 step=1000 value="'+(x?num(x.tarif,0):0)+'">'+
     '<div class="aksi"><button data-aksi="kota-simpan">Simpan</button>'+
@@ -1272,12 +1299,20 @@ function simpanKegiatan(){
   var orang=Object.keys(f.orang).map(function(x){return parseInt(x,10);});
   if(!orang.length){stat("Centang minimal satu nama");return;}
   stat("Menyimpan\u2026");
-  rpc("keg_simpan_kegiatan",{p_pin:PIN,p_id:f.id,p_jenis_id:f.jenis_id,p_judul:f.judul,
+  var arg={p_pin:PIN,p_id:f.id,p_jenis_id:f.jenis_id,p_judul:f.judul,
     p_tanggal:f.tanggal||null,p_jumlah_hari:num(f.jumlah_hari,1),p_lokasi:f.lokasi,
     p_tier:f.tier,p_tingkat_beban:num(f.tingkat_beban,2),p_ketua_id:f.ketua_id,
     p_catatan:f.catatan,p_orang:orang,
-    p_provinsi:f.provinsi||null,
-    p_hari_meeting:Math.min(num(f.hari_meeting,0),num(f.jumlah_hari,1))})
+    p_provinsi:f.provinsi||null, p_kota:f.kota||null,
+    p_hari_meeting:Math.min(num(f.hari_meeting,0),num(f.jumlah_hari,1))};
+  /* Dua dunia: kalau 25-tujuan.sql belum dijalankan, fungsinya belum kenal
+     p_kota dan Postgres menolak seluruh panggilan. Daripada mencatat jadi
+     mati total, ulangi tanpa p_kota -- tujuannya saja yang belum tersimpan. */
+  return rpc("keg_simpan_kegiatan",arg)
+    .catch(function(e){
+      if(!/p_kota|does not exist|schema cache/i.test(e.message||"")) throw e;
+      var lama={}; for(var k in arg) if(k!=="p_kota") lama[k]=arg[k];
+      return rpc("keg_simpan_kegiatan",lama);})
     .then(function(){FORM=null;return muat();})
     .then(function(){stat("Tersimpan");})
     .catch(function(e){stat("Gagal: "+e.message);});}
@@ -1413,16 +1448,17 @@ document.addEventListener("click",function(ev){
   if(a==="kota-baru"){formKota(null);return;}
   if(a==="kota-edit"){formKota(v);return;}
   if(a==="kota-simpan"){
-    var kn=$("#kNama").value.trim().toLowerCase();
-    if(!kn){stat("Nama kota wajib diisi");return;}
+    var kn=$("#kNama").value.trim();
+    if(!kn){stat("Nama tujuan wajib diisi");return;}
     rpc("keg_set_transport_kota",{p_pin:PIN,p_kota:kn,
+      p_provinsi:$("#kProv").value,
       p_tarif:Math.max(0,parseInt($("#kTarif").value,10)||0)})
       .then(function(){tutupModal();return muat();})
       .then(function(){stat("Tarif kota tersimpan");})
       .catch(function(e){stat("Gagal: "+e.message);});
     return;}
   if(a==="kota-hapus"){
-    if(!confirm("Hapus tarif kota ini? Kegiatan ke sana balik ke hitungan provinsi.")) return;
+    if(!confirm("Hapus tujuan ini? Catatan yang memakainya balik ke hitungan provinsi.")) return;
     rpc("keg_hapus_transport_kota",{p_pin:PIN,p_kota:v})
       .then(function(){tutupModal();return muat();}).then(function(){stat("Dihapus");})
       .catch(function(e){stat("Gagal: "+e.message);});return;}
