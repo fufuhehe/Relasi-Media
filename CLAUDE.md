@@ -459,7 +459,22 @@ Panjang batang mengikuti **rupiah**, diurut dari yang terbesar, dan jumlah kali 
 sebagai teks (`8× · Rp 8,4jt`) supaya pertanyaan "paling sering di jenis apa" tetap
 terjawab tanpa batang kedua. Ada keterangan satu baris di bawahnya yang menyebut batangnya
 mengikuti apa — jangan dihapus, tanpa itu batang 6× yang panjang di sebelah 8× yang pendek
-membingungkan. Tes: `t18.js`.
+membingungkan.
+
+**Pembanding: `rataLain(id)`.** Rata-rata anggota **LAIN** di kategori yang sama (tim
+dibanding tim, TU dibanding TU). Dua keputusan yang jangan diubah diam-diam:
+- **Orangnya sendiri dikeluarkan** dari rata-rata. Kalau ikut dihitung, jaraknya terlihat
+  lebih kecil dari yang sebenarnya — persis hal yang mau dilihat jadi tumpul.
+- **Penyebutnya semua orang di kategori itu, termasuk yang nol** di jenis tersebut. Yang
+  terjawab jadi "dibanding anggota tim pada umumnya", bukan "dibanding sesama yang
+  kebetulan ikut" — dan pertanyaan pemerataan itu soal siapa yang dikirim.
+
+Digambar sebagai **garis tegak `<u>` di dalam batang**, bukan batang kedua: ujung batang
+lewat garis = di atas rata-rata, belum sampai = di bawah. Garisnya WAJIB putih bergaris
+tepi gelap (`background:#fff; box-shadow:0 0 0 1px`) — versi pertama dibuat gelap polos dan
+**hilang ditelan isian batang** yang juga gelap, jadi tidak kelihatan sama sekali di
+jepretan. `banding()` menulis rasionya sebagai teks (`1,2× rata-rata`, `setara` untuk
+selisih di bawah 5%, `sendirian` kalau tidak ada pembanding). Tes: `t18.js`.
 
 ### Modal — title bar NEMPEL, aksi utama di atas
 Modal digulung sebagai satu blok (`.tutup` yang menggulung di Jadul, `.modal` sendiri di

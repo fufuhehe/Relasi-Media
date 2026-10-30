@@ -96,7 +96,10 @@ th,td{padding:5px;text-align:left;border-bottom:1px solid var(--shadow)}
 th{font-size:12px;border-bottom:2px solid var(--shadow)}
 td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .bar{height:9px;background:var(--field);border:1px solid var(--shadow);min-width:44px}
+.bar{position:relative}
 .bar i{display:block;height:100%}
+.bar u{position:absolute;top:-3px;bottom:-3px;width:3px;margin-left:-1px;
+  background:#fff;box-shadow:0 0 0 1px var(--fg)}
 .bar i.a{background:var(--bar1)} .bar i.b{background:var(--bar2)}
 .pilih{display:flex;align-items:center;gap:9px;padding:8px 4px;border-bottom:1px solid var(--shadow)}
 .pilih input[type=checkbox]{width:24px;height:24px;min-height:24px;flex:none;box-shadow:none;margin:0}
@@ -309,6 +312,24 @@ function perJenis(daftar){
   urut.sort(function(a,b){return b.jalan-a.jalan||b.n-a.n;});
   return urut;}
 function namaJenis(id){var j=cari(DB.jenis,id);return j?j.nama:"(kegiatan dihapus)";}
+function rataLain(id){
+  /* Rata-rata anggota LAIN di kategori yang sama (tim dibanding tim, TU
+     dibanding TU). Orangnya sendiri dikeluarkan -- kalau ikut dihitung,
+     jaraknya jadi kelihatan lebih kecil dari yang sebenarnya.
+     Penyebutnya semua orang di kategori itu, termasuk yang nol, supaya
+     yang terjawab "dibanding anggota tim pada umumnya", bukan "dibanding
+     sesama yang kebetulan ikut". */
+  var a=angg(id); if(!a) return {semua:0,jenis:{},n:0};
+  var r=rekap(), total=0, n=0, peta={};
+  r.forEach(function(x){
+    if(x.id===id) return;
+    var o=angg(x.id); if(!o||o.kategori!==a.kategori) return;
+    n++; total+=x.jalan;
+    perJenis(x.daftar).forEach(function(j){
+      peta[j.id]=(peta[j.id]||0)+j.jalan;});});
+  if(!n) return {semua:0,jenis:{},n:0};
+  var jen={}; for(var k in peta) jen[k]=peta[k]/n;
+  return {semua:total/n,jenis:jen,n:n};}
 function uangRingkas(k){
   /* Ditaruh di AWAL baris meta, bukan di ujung: karena tiap kartu mulai di
      x yang sama, angkanya jadi satu kolom yang gampang disusuri waktu
@@ -1041,14 +1062,17 @@ function detailOrang(id){
     if(!x.k.tanggal) return -1; if(!y.k.tanggal) return 1;
     return x.k.tanggal<y.k.tanggal?1:-1;});
   var t=r?r.tier:{dalam_kota:0,luar_pp:0,luar_inap:0};
+  var RT=rataLain(id);
   var h='<div class="meta">Filter: '+esc(labelFilter())+"</div>"+
     "<p><b>"+(r?r.n:0)+" kali jalan</b>, total "+(r?r.hari:0)+" hari<br>"+
-    "Diterima "+rupiah(r?r.jalan:0)+" \u00b7 skor beban "+bulat(r?r.beban:0)+"</p>"+
+    "Diterima "+rupiah(r?r.jalan:0)+" \u00b7 skor beban "+bulat(r?r.beban:0)+
+    (RT.n?'<br><span class="meta">Rata-rata '+RT.n+" anggota lain: "+rupiah(RT.semua)+
+      " \u00b7 dia "+banding(r?r.jalan:0,RT.semua)+"</span>":"")+"</p>"+
     '<fieldset class="grp"><legend>Sebaran tujuan</legend>'+
     '<table><tr><td>Dalam kota</td><td class="n"><b>'+t.dalam_kota+"\u00d7</b></td></tr>"+
     '<tr><td>Luar kota PP</td><td class="n"><b>'+t.luar_pp+"\u00d7</b></td></tr>"+
     '<tr><td>Luar kota nginep</td><td class="n"><b>'+t.luar_inap+"\u00d7</b></td></tr></table></fieldset>"+
-    jenisHTML(r?r.daftar:[])+
+    jenisHTML(r?r.daftar:[],RT)+
     '<fieldset class="grp"><legend>Riwayat</legend>'+
     (d.length?d.map(function(x){
       return '<div class="in kart" data-aksi="detail" data-v="'+x.k.id+'">'+
@@ -1057,19 +1081,33 @@ function detailOrang(id){
         " \u00b7 "+TIERP[x.k.tier]+"</div></div>";}).join("")
       :'<div class="kosong">Belum ada.</div>')+"</fieldset>";
   bukaModal(a.nama,h);}
-function jenisHTML(daftar){
+function banding(nilai,rata){
+  if(!rata) return "sendirian";
+  var k=nilai/rata;
+  if(k>=0.95&&k<=1.05) return "setara";
+  return (Math.round(k*10)/10).toString().replace(".",",")+"\u00d7 rata-rata";}
+function jenisHTML(daftar,RT){
   var baris=perJenis(daftar);
   if(!baris.length) return "";
-  var maks=1; baris.forEach(function(x){if(x.jalan>maks) maks=x.jalan;});
+  RT=RT||{jenis:{},n:0};
+  var maks=1;
+  baris.forEach(function(x){
+    if(x.jalan>maks) maks=x.jalan;
+    var rt=RT.jenis[x.id]||0; if(rt>maks) maks=rt;});
   return '<fieldset class="grp"><legend>Per jenis kegiatan</legend>'+
     baris.map(function(x){
+      var rt=RT.jenis[x.id]||0;
       return '<div style="margin-bottom:7px">'+
         '<div style="display:flex;gap:8px;align-items:baseline">'+
           '<span style="flex:1;min-width:0">'+esc(x.nama)+"</span>"+
           '<span class="meta" style="flex:none">'+x.n+"\u00d7 \u00b7 <b>"+rupiah(x.jalan)+"</b></span></div>"+
         '<div class="bar" style="margin-top:3px"><i class="a" style="width:'+
-          (x.jalan/maks*100).toFixed(0)+'%"></i></div></div>';}).join("")+
-    '<div class="meta">Panjang batang mengikuti rupiahnya, bukan jumlah kalinya.</div></fieldset>';}
+          (x.jalan/maks*100).toFixed(0)+'%"></i>'+
+          (rt?'<u style="left:'+Math.min(100,rt/maks*100).toFixed(0)+'%" title="rata-rata '+
+            esc(rupiah(rt))+'"></u>':"")+"</div>"+
+        '<div class="meta" style="text-align:right">'+esc(banding(x.jalan,rt))+"</div></div>";}).join("")+
+    '<div class="meta">Batang = rupiah yang dia terima. Garis tegak = rata-rata '+
+    (RT.n||0)+' anggota lain di kategori yang sama.</div></fieldset>';}
 
 /* ---------- salin / csv ---------- */
 function salin(t,p){

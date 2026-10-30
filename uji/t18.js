@@ -19,7 +19,7 @@ global.localStorage={getItem:()=>null,setItem(){},removeItem(){}};
 global.sessionStorage={getItem:()=>null,setItem(){},removeItem(){}};
 global.navigator={}; global.window={matchMedia:()=>({matches:false})};
 src=src.replace(/\(function\(\)\{\n  try\{[\s\S]*$/,'');
-src+="\nmodule.exports={perJenis,jenisHTML,detailOrang,rekap,DB,setPin:p=>{PIN=p},setPeriode:p=>{PERIODE=p}};\n";
+src+="\nmodule.exports={perJenis,jenisHTML,detailOrang,rekap,rataLain,banding,DB,setPin:p=>{PIN=p},setPeriode:p=>{PERIODE=p}};\n";
 fs.writeFileSync('s_'+FILE,src);
 const M=require('./s_'+FILE), {DB}=M;
 
@@ -32,7 +32,10 @@ DB.kota=[{kota:'Kota Depok',provinsi:'Jawa Barat',tarif:496000,urutan:1}];
 DB.jenis=[{id:1,nama:'Rapat bodetabek',tier:'luar_pp',tingkat_beban:2,aktif:true,paket_meeting:true},
           {id:2,nama:'Produksi konten',tier:'luar_pp',tingkat_beban:3,aktif:true,paket_meeting:false},
           {id:3,nama:'Diksi',tier:'dalam_kota',tingkat_beban:2,aktif:true,paket_meeting:false}];
-DB.anggota=[{id:7,nama:'Chika',kategori:'tim',aktif:true,urutan:1}];
+DB.anggota=[{id:7,nama:'Chika',kategori:'tim',aktif:true,urutan:1},
+            {id:8,nama:'Widi',kategori:'tim',aktif:true,urutan:2},
+            {id:9,nama:'Riri',kategori:'tim',aktif:true,urutan:3},
+            {id:50,nama:'Ragil',kategori:'tu',aktif:true,urutan:1}];
 function K(id,jenis,extra){return Object.assign({id:id,jenis_id:jenis,judul:'',tanggal:'2026-0'+(id%9+1)+'-05',
   jumlah_hari:1,lokasi:'',tier:jenis===3?'dalam_kota':'luar_pp',tingkat_beban:2,ketua_id:null,
   catatan:'',provinsi:'DKI Jakarta',kota:null,hari_meeting:0,dibuat:'2026-01-01'},extra||{});}
@@ -41,6 +44,10 @@ function K(id,jenis,extra){return Object.assign({id:id,jenis_id:jenis,judul:'',t
 DB.kegiatan=[K(1,1,{kota:'Kota Depok',hari_meeting:1}),K(2,1,{kota:'Kota Depok',hari_meeting:1}),
              K(3,2,{kota:'Kota Depok'}),K(4,3),K(5,3),K(6,3)];
 DB.penugasan=DB.kegiatan.map(k=>({kegiatan_id:k.id,anggota_id:7}));
+/* Widi cuma ikut 1 diksi, Riri tidak ikut apa-apa, Ragil (TU) ikut semua.
+   Jadi rata-rata "anggota lain" di kategori tim = (Widi + Riri) / 2. */
+DB.penugasan.push({kegiatan_id:4,anggota_id:8});
+DB.kegiatan.forEach(k=>DB.penugasan.push({kegiatan_id:k.id,anggota_id:50}));
 DB.foto=[];
 M.setPeriode({tahun:0,jenis:0,urut:'jalan'});
 
@@ -74,7 +81,7 @@ cek('tiga batang terender', (h.match(/class="bar"/g)||[]).length, 3);
 cek('yang terbesar penuh 100%', /width:100%/.test(h), true);
 cek('batang lain lebih pendek', (h.match(/width:100%/g)||[]).length, 1);
 cek('tiap baris menulis jumlah kali', (h.match(/\d+× · <b>Rp/g)||[]).length, 3);
-cek('dijelaskan batangnya mengikuti apa', h.indexOf('mengikuti rupiahnya')>=0, true);
+cek('dijelaskan batangnya mengikuti apa', h.indexOf('Batang = rupiah')>=0, true);
 cek('orang tanpa catatan: tidak menampilkan apa-apa', M.jenisHTML([]), "");
 
 console.log('--- menyatu di layar orang ---');
@@ -90,6 +97,35 @@ cek('tetap bisa ditutup dari title bar',
 console.log('--- kasus batas ---');
 DB.jenis=[];
 cek('jenis terhapus tidak meledak', M.perJenis(r.daftar)[0].nama, '(kegiatan dihapus)');
+
+console.log('--- pembanding: rata-rata anggota LAIN ---');
+var RT=M.rataLain(7);
+cek('dibanding 2 orang lain di kategori tim, TU tidak ikut', RT.n, 2);
+/* Widi: 1x diksi = 380rb. Riri: 0. Rata-rata = 190rb */
+cek('rata-rata keseluruhan = (380rb + 0) / 2', RT.semua, 190000);
+cek('rata-rata diksi juga 190rb', RT.jenis[3], 190000);
+cek('jenis yang orang lain tidak pernah ikut: nol', RT.jenis[1]||0, 0);
+cek('dirinya sendiri tidak ikut dihitung', RT.semua===r.jalan, false);
+
+console.log('--- kalimat pembandingnya ---');
+cek('jauh di atas', M.banding(1140000,190000), '6\u00d7 rata-rata');
+cek('di bawah', M.banding(95000,190000), '0,5\u00d7 rata-rata');
+cek('selisih tipis dibilang setara', M.banding(195000,190000), 'setara');
+cek('tidak ada pembanding', M.banding(500000,0), 'sendirian');
+cek('nol lawan nol aman', M.banding(0,0), 'sendirian');
+
+console.log('--- penanda di batang ---');
+var h2=M.jenisHTML(r.daftar,RT);
+cek('ada penanda rata-rata', (h2.match(/<u style="left:/g)||[]).length, 1);
+cek('cuma di jenis yang orang lain pernah ikut', (h2.match(/<u /g)||[]).length, 1);
+cek('penanda tidak lewat 100%', /left:1[0-9][1-9]%|left:[2-9]\d\d%/.test(h2), false);
+cek('tiap baris menulis bandingannya', (h2.match(/rata-rata<\/div>|sendirian<\/div>/g)||[]).length, 3);
+cek('keterangan menyebut jumlah pembandingnya', h2.indexOf('rata-rata 2 anggota lain')>=0, true);
+cek('tanpa RT tetap jalan', M.jenisHTML(r.daftar).indexOf('<u ')>=0, false);
+
+console.log('--- muncul di layar orang ---');
+M.setPin('1234'); M.detailOrang(7);
+cek('baris rata-rata di atas ada', OUT.indexOf('anggota lain')>=0, true);
 
 console.log(gagal?'\n>>> '+gagal+' TES GAGAL':'\n>>> SEMUA TES LULUS');
 process.exit(gagal?1:0);
