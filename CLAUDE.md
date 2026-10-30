@@ -421,6 +421,21 @@ Target sekitar 6-7 kartu per layar HP, rapat tapi masih nyaman diketuk. Aturan y
 - Layar detail varian Modern menaruh tier, beban, dan skor jalan dalam SATU baris ringkas,
   bukan tiga baris `.cell` terpisah — supaya kerapatannya setara varian Jadul.
 
+### Modal — title bar NEMPEL, aksi utama di atas
+Modal digulung sebagai satu blok (`.tutup` yang menggulung di Jadul, `.modal` sendiri di
+Modern), jadi apa pun yang ditaruh di dasar body akan **ketinggalan** begitu isinya panjang —
+termasuk tombol `×`. Dulu di layar detail ada tombol "Tutup" di bawah justru karena `×`-nya
+tidak kejangkau; akibatnya di tengah modal tidak ada jalan keluar sama sekali.
+
+Sekarang title bar `position:sticky; top:0` (di Modern dibungkus `.mhead` bersama `.grip`
+supaya pegangannya ikut nempel). `bukaModal(judul, isi, aksi)` menerima **argumen ketiga**:
+HTML tombol yang ditempel di title bar sebelum `×`. Layar detail memakainya untuk **Ubah**,
+jadi mengedit tidak perlu scroll. "Tutup" di dasar body sudah dibuang — sekarang betul-betul
+redundan. "Salin ke WA" sengaja tetap di bawah: aksi jarang, biasanya setelah membaca semua.
+
+Kalau menambah aksi penting di modal mana pun, taruh di argumen ketiga itu, **jangan** di
+dasar body. Ada tes (`t17.js`).
+
 ### Pemilih tampilan
 Panel admin punya kontrol **Jadul / Modern**. Itu label di UI; nilai yang disimpan tetap
 `"win"` / `"ios"` di `localStorage.keg_tampilan` (per perangkat) supaya tidak perlu migrasi.

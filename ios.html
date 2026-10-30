@@ -238,7 +238,9 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .modal{max-width:600px;width:100%;margin:0;background:var(--card);
   border-radius:22px 22px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.3);max-height:94vh;overflow:auto}
 .grip{width:38px;height:5px;border-radius:3px;background:var(--sep);margin:9px auto 0}
-.modal .tb{display:flex;align-items:center;gap:8px;padding:6px 16px 2px}
+.mhead{position:sticky;top:0;z-index:3;background:var(--card);border-radius:22px 22px 0 0}
+.modal .tb{display:flex;align-items:center;gap:8px;padding:6px 16px 10px}
+.modal .tb .kecil{flex:none}
 .modal .tb .sp{flex:1;font-size:22px;font-weight:700;letter-spacing:-.02em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .modal .body{padding:8px 16px 20px}
@@ -684,7 +686,7 @@ function gambarLB(){
   }}
 function fotoHTML(kegId){
   var f=fotoDi(kegId);
-  var h='<div class="sect">Bukti dokumentasi ('+f.length+')</div><div class="list">';
+  var h='<div class="sect">Foto ('+f.length+')</div><div class="list">';
   if(f.length){
     h+='<div class="fotos">'+f.map(function(x,i){
       return '<div class="fotobox">'+
@@ -998,13 +1000,18 @@ function gambarLapis(keep){
   var isi=FORM?formCatat():MODAL.isi;
   var tombol=FORM?"batal":"tutup";
   el.innerHTML='<div class="tutup"><div class="out win modal">'+
-    '<div class="grip"></div>'+
+    '<div class="mhead"><div class="grip"></div>'+
     '<div class="tb"><span class="sp">'+esc(jud)+"</span>"+
-    '<button class="iconbtn" data-aksi="'+tombol+'">&times;</button></div>'+
+    ((MODAL&&MODAL.aksi)||"")+
+    '<button class="iconbtn" data-aksi="'+tombol+'">&times;</button></div></div>'+
     '<div class="body">'+isi+"</div></div></div>";
   if(sc){var nw=el.querySelector(".modal"); if(nw) nw.scrollTop=sc;}
   pasangFoto();}
-function bukaModal(j,i){MODAL={judul:j,isi:i};FORM=null;MODAL_KEG=null;gambarLapis();}
+function bukaModal(j,i,aksi){
+  /* aksi = tombol yang nempel di title bar, biar kejangkau dari posisi
+     scroll manapun. Modal digulung utuh, jadi apa pun yang ditaruh di
+     dasar body bakal ketinggalan waktu isinya panjang. */
+  MODAL={judul:j,isi:i,aksi:aksi||""};FORM=null;MODAL_KEG=null;gambarLapis();}
 function tutupModal(){MODAL=null;MODAL_KEG=null;gambarLapis();}
 
 function formCatat(){
@@ -1152,9 +1159,10 @@ function detailKegiatan(id){
       :'<div class="cell static"><div class="tx"><div class="sb">Belum diisi.</div></div></div>')+"</div>"+
     fotoHTML(id)+dokHTML(id)+
     '<div class="aksi" style="margin-top:18px">'+
-    (PIN?'<button data-aksi="edit-keg" data-v="'+id+'">Ubah</button>':"")+
     '<button data-aksi="wa-keg" data-v="'+id+'">Salin ke WA</button></div>';
-  bukaModal(j?j.nama:"Kegiatan",h); MODAL_KEG=id;}
+  bukaModal(j?j.nama:"Kegiatan",h,
+    PIN?'<button class="kecil" data-aksi="edit-keg" data-v="'+id+'">Ubah</button>':"");
+  MODAL_KEG=id;}
 
 function detailOrang(id){
   var a=angg(id); if(!a) return;

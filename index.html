@@ -51,6 +51,8 @@ body{background:var(--face);color:var(--text);
 .kepala{position:sticky;top:0;z-index:10}
 .tb{display:flex;align-items:center;gap:4px;padding:3px 3px 3px 6px;
   background:linear-gradient(90deg,var(--title1),var(--title2));color:var(--titletext);font-weight:bold}
+.modal .tb{position:sticky;top:0;z-index:3}
+.modal .tb .kecil{min-height:22px;height:22px;padding:0 8px;font-weight:normal}
 .tb .sp{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tbtn{width:24px;height:22px;font-size:11px;font-weight:bold;line-height:1;padding:0;flex:none;min-height:22px}
 .body{padding:8px;min-width:0}
@@ -543,7 +545,7 @@ function gambarLB(){
   }}
 function fotoHTML(kegId){
   var f=fotoDi(kegId);
-  var h='<fieldset class="grp"><legend>Bukti dokumentasi ('+f.length+")</legend>";
+  var h='<fieldset class="grp"><legend>Foto ('+f.length+")</legend>";
   if(f.length){
     h+='<div class="fotos">'+f.map(function(x,i){
       return '<div class="fotobox">'+
@@ -884,11 +886,16 @@ function gambarLapis(keep){
   var tombol=FORM?"batal":"tutup";
   el.innerHTML='<div class="tutup"><div class="out win modal">'+
     '<div class="tb"><span class="sp">'+esc(jud)+"</span>"+
+    ((MODAL&&MODAL.aksi)||"")+
     '<button class="out tbtn" data-aksi="'+tombol+'">&times;</button></div>'+
     '<div class="body">'+isi+"</div></div></div>";
   if(sc){var nw=el.querySelector(".tutup"); if(nw) nw.scrollTop=sc;}
   pasangFoto();}
-function bukaModal(j,i){MODAL={judul:j,isi:i};FORM=null;MODAL_KEG=null;gambarLapis();}
+function bukaModal(j,i,aksi){
+  /* aksi = tombol yang nempel di title bar, biar kejangkau dari posisi
+     scroll manapun. Modal digulung utuh, jadi apa pun yang ditaruh di
+     dasar body bakal ketinggalan waktu isinya panjang. */
+  MODAL={judul:j,isi:i,aksi:aksi||""};FORM=null;MODAL_KEG=null;gambarLapis();}
 function tutupModal(){MODAL=null;MODAL_KEG=null;gambarLapis();}
 
 function formCatat(){
@@ -1031,7 +1038,7 @@ function detailKegiatan(id){
   var h=(k.judul?"<p><b>"+esc(k.judul)+"</b></p>":"")+
     '<div class="meta">'+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari</div>"+
     "<p>"+(k.lokasi?"<b>Lokasi:</b> "+esc(k.lokasi)+"<br>":"")+
-    "<b>Tier:</b> "+TIER[k.tier]+" \u00b7 <b>beban:</b> "+BEBAN[k.tingkat_beban]+"<br>"+
+    TIER[k.tier]+" \u00b7 beban "+BEBAN[k.tingkat_beban].toLowerCase()+"<br>"+
     "<b>Diterima:</b> "+rupiah(skorJalan(k))+" per orang"+
       (rinciJalan(k).asal?'<br><span class="meta">'+esc(rinciJalan(k).asal)+"</span>":"")+"</p>"+
     (k.catatan?"<p>"+esc(k.catatan).replace(/\n/g,"<br>")+"</p>":"")+
@@ -1039,10 +1046,10 @@ function detailKegiatan(id){
     (o.length?(grp("Ketua",ket)+grp("Anggota",tim)+grp("TU",tu))
       :'<div class="kosong">Belum diisi.</div>')+"</fieldset>"+
     fotoHTML(id)+dokHTML(id)+
-    '<div class="aksi"><button data-aksi="wa-keg" data-v="'+id+'">Salin ke WA</button>'+
-    (PIN?'<button data-aksi="edit-keg" data-v="'+id+'">Ubah</button>':"")+
-    '<button data-aksi="tutup">Tutup</button></div>';
-  bukaModal(j?j.nama:"Kegiatan",h); MODAL_KEG=id;}
+    '<div class="aksi"><button data-aksi="wa-keg" data-v="'+id+'">Salin ke WA</button></div>';
+  bukaModal(j?j.nama:"Kegiatan",h,
+    PIN?'<button class="out kecil" data-aksi="edit-keg" data-v="'+id+'">Ubah</button>':"");
+  MODAL_KEG=id;}
 
 function detailOrang(id){
   var a=angg(id); if(!a) return;
