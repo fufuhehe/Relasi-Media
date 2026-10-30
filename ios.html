@@ -74,17 +74,16 @@ body{background:var(--bg);color:var(--text);
 .sub b{color:var(--text);font-weight:600}
 
 /* section + inset list */
-.sect{font-size:13px;font-weight:600;color:var(--textdim);text-transform:uppercase;
-  letter-spacing:.04em;margin:22px 6px 7px}
+.sect{font-size:13px;font-weight:600;color:var(--textdim);margin:14px 6px 6px}
 .list{background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
-.cell{display:flex;align-items:center;gap:12px;padding:9px 16px;min-height:44px;
+.cell{display:flex;align-items:center;gap:10px;padding:8px 12px;min-height:44px;
   cursor:pointer;transition:background .1s}
 .cell+.cell{border-top:1px solid var(--sep)}
 .cell:active{background:var(--card2)}
 .cell.static{cursor:default}
 .cell.static:active{background:none}
 .cell .tx{flex:1;min-width:0}
-.cell .tl{font-weight:600;font-size:16px;letter-spacing:-.01em}
+.cell .tl{font-weight:600;font-size:15px;letter-spacing:-.01em;line-height:1.25}
 .cell .sb{font-size:13px;color:var(--textdim);margin-top:1px;overflow:hidden;text-overflow:ellipsis}
 .cell .sb.nm{color:var(--text);opacity:.85;white-space:normal;margin-top:3px}
 .val{flex:none;color:var(--textdim);font-variant-numeric:tabular-nums;font-size:15px}
@@ -162,7 +161,7 @@ label{display:block;margin:15px 0 6px;font-weight:600;font-size:14px;color:var(-
 .frow{display:flex;align-items:center;gap:10px;padding:13px 16px}
 .frow .fl{font-weight:500;font-size:16px}
 .ctlval{margin-left:auto;color:var(--textdim);font-size:15px}
-.cap{font-size:12px;font-weight:600;color:var(--textdim);text-transform:uppercase;letter-spacing:.03em;margin:0 0 6px}
+.cap{font-size:12px;font-weight:600;color:var(--textdim);margin:0 0 5px}
 details>summary.frow{padding:13px 16px}
 .cell.chk input[type=checkbox]{width:25px;height:25px;min-height:25px;flex:none;accent-color:var(--accent);
   margin:0;box-shadow:none;-webkit-appearance:auto;appearance:auto}
@@ -246,7 +245,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 
 /* collapsible */
 details>summary{cursor:pointer;list-style:none;display:flex;align-items:center;
-  padding:11px 2px;font-weight:600;font-size:15px}
+  padding:8px 2px;font-weight:600;font-size:15px}
 details>summary::-webkit-details-marker{display:none}
 details>summary:after{content:"";margin-left:auto;width:8px;height:8px;
   border-right:2px solid var(--textdim);border-bottom:2px solid var(--textdim);
@@ -318,14 +317,18 @@ function iso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"
 function hariIni(){return iso(new Date());}
 function geser(s,n){var t=Date.parse(s+"T00:00:00Z")+n*86400000;return new Date(t).toISOString().slice(0,10);}
 function akhir(k){return k.tanggal?geser(k.tanggal,Math.max(0,num(k.jumlah_hari,1)-1)):null;}
-function tglTeks(k){
+function tglTeks(k,tanpaThn){
+  /* tanpaThn dipakai di kartu daftar: tahunnya sudah tertulis di judul
+     bulan tepat di atasnya, jadi mengulangnya cuma mendorong lokasi
+     turun ke baris kedua. */
   if(!k.tanggal) return "tanggal belum ada";
   var p=k.tanggal.split("-"), a=parseInt(p[2],10)+" "+BLN3[parseInt(p[1],10)];
+  var th=tanpaThn?"":" "+p[0];
   var h=num(k.jumlah_hari,1);
-  if(h<=1) return a+" "+p[0];
+  if(h<=1) return a+th;
   var b=akhir(k).split("-");
-  if(b[1]===p[1]) return parseInt(p[2],10)+"\u2013"+parseInt(b[2],10)+" "+BLN3[parseInt(p[1],10)]+" "+p[0];
-  return a+" \u2013 "+parseInt(b[2],10)+" "+BLN3[parseInt(b[1],10)]+" "+b[0];}
+  if(b[1]===p[1]) return parseInt(p[2],10)+"\u2013"+parseInt(b[2],10)+" "+BLN3[parseInt(p[1],10)]+th;
+  return a+" \u2013 "+parseInt(b[2],10)+" "+BLN3[parseInt(b[1],10)]+(tanpaThn?"":" "+b[0]);}
 function tumpang(a1,a2,b1,b2){return !(a2<b1||a1>b2);}
 function labelFilter(){var j=PERIODE.jenis?cari(DB.jenis,PERIODE.jenis):null;
   return (PERIODE.tahun||"semua waktu")+(j?" \u00b7 "+j.nama:"");}
@@ -801,7 +804,9 @@ function viewCatat(){
          :'<span class="kthumb kosong" title="belum ada foto"></span>')+
       '<div class="tx">'+
       '<div class="tl">'+esc(namaKeg(k))+"</div>"+
-      '<div class="sb">'+uangRingkas(k)+" \u00b7 "+tglTeks(k)+" \u00b7 "+num(k.jumlah_hari,1)+" hari"+(k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
+      '<div class="sb">'+uangRingkas(k)+" \u00b7 "+tglTeks(k,true)+
+        (num(k.jumlah_hari,1)>1?" \u00b7 "+num(k.jumlah_hari,1)+" hari":"")+
+        (k.lokasi?" \u00b7 "+esc(k.lokasi):"")+"</div>"+
       '<div class="sb nm">'+namaRingkas(k)+"</div>"+
       "</div><span class=\"chev\"></span></div>";}
   if(tanpa.length)
@@ -1020,7 +1025,7 @@ function formCatat(){
         var s=r[a.id];
         return '<label class="cell chk"><input type=checkbox data-orang="'+a.id+'"'+(f.orang[a.id]?" checked":"")+">"+
           '<span class="tx"><div class="tl">'+esc(a.nama)+"</div>"+
-            '<div class="sb">'+(s?s.n:0)+"\u00d7 jalan \u00b7 skor "+(s?bulat(s.jalan):0)+
+            '<div class="sb">'+(s?s.n:0)+"\u00d7 jalan \u00b7 "+(s?rupiah(s.jalan):"Rp 0")+
               (rj?' \u00b7 <b>'+(rj[a.id]?rj[a.id].n:0)+"\u00d7 kegiatan ini</b>":"")+"</div>"+
             (bt.length?'<div class="sb"><span class="chip w">bentrok: '+esc(namaKeg(bt[0]))+"</span></div>":"")+
           "</span></label>";}).join("")+"</div>";});
@@ -1114,7 +1119,8 @@ function detailKegiatan(id){
     '<div class="list"><div class="cell static"><div class="tx">'+
       '<div class="tl">'+TIER[k.tier]+" \u00b7 beban "+BEBAN[k.tingkat_beban].toLowerCase()+"</div>"+
       '<div class="sb">Diterima <b>'+rupiah(skorJalan(k))+"</b> per orang"+
-        (rinciJalan(k).asal?" \u00b7 "+esc(rinciJalan(k).asal):"")+"</div>"+
+        (function(){var r=rinciJalan(k); if(!r.asal) return "";
+          return " \u00b7 "+esc(r.asal)+(r.lengkap?"":' \u00b7 <b style="color:var(--alert)">tarif belum diisi</b>');})()+"</div>"+
     "</div></div></div>"+
     (k.catatan?'<div class="sect">Catatan</div><div class="list"><div class="cell static"><div class="tx"><div class="sb nm">'+esc(k.catatan).replace(/\n/g,"<br>")+"</div></div></div></div>":"")+
     '<div class="sect">Yang jalan ('+o.length+')</div><div class="list">'+

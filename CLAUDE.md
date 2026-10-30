@@ -323,6 +323,19 @@ Tes: `t15.js` (aturan lengkap + catatan SPJ asli), `t16.js` (dua dunia), `t14.js
 (hitungan transport & faktor), `t13.js` (lima contoh awal). Jalankan semuanya di
 `index.js` DAN `ios.js`.
 
+### Melihat UI-nya sendiri sebelum menilai
+Container punya Chromium + Playwright. Jangan menebak soal tampilan — buka saja:
+`uji/mock.js` menyuntik `fetch` palsu berisi ~73 catatan mirip data asli (nama tim, jenis
+kegiatan, venue, foto placeholder) dan mengisi `localStorage` supaya langsung masuk mode
+admin, lalu `uji/shot.js` menjepret enam layar di viewport iPhone (390x844, DSR 2):
+daftar, detail, detail-digulung, form catat, tab Tim, panel Admin. Pakai `file://`, tidak
+perlu jaringan.
+
+Cara pakai: salin `index.html`/`ios.html` ke folder sementara, ganti `location.href` pengalih
+tampilan jadi `void 0` (kalau tidak, halamannya lompat-lompat), sisipkan
+`<script src="./mock.js"></script>` sebelum `</head>`, lalu `node shot.js jadul|modern`.
+Skripnya juga mencatat error JS dan console — itu yang membongkar bug "skor 35046000".
+
 **Semua tes WAJIB membaca file dari `process.argv[2]`** (`index.js` / `ios.js`), yang
 diperbarui `ekstrak.js` dari HTML terkini. `t1.js` dulu membaca `app.js` — salinan lama
 yang tidak ikut diekstrak — jadi berbulan-bulan menguji kode basi tanpa ketahuan.
@@ -387,7 +400,10 @@ variable di `:root`.
 
 Varian **iOS modern** dipertahankan sebagai `ios.html` (fallback): kartu rounded, font sistem,
 aksen biru iOS `#007aff`, dark mode auto (`prefers-color-scheme`), tab bar di bawah, modal
-bottom-sheet.
+bottom-sheet. **Judul bagian dan label field pakai sentence case, BUKAN huruf besar semua** —
+`.sect` dan `.cap` sudah dibersihkan dari `text-transform:uppercase`. Huruf besar semua di
+sini makan ruang vertikal, melebarkan teks, dan terbaca kaku. Varian ini memang lebih longgar
+dari Jadul; itu konsekuensi gayanya, bukan bug.
 
 Dua-duanya skin di atas layout mobile-first, bukan simulasi desktop. Jangan bikin window yang
 bisa digeser atau taskbar — dia buka ini dari HP.
@@ -400,8 +416,13 @@ Target sekitar 6-7 kartu per layar HP, rapat tapi masih nyaman diketuk. Aturan y
   ada versi kecil. Tanpa `lazy`, membuka daftar berarti mengunduh puluhan megabita
   sekaligus di HP. Kalau suatu saat transformasi gambar Supabase aktif, tambahkan
   `?width=92&quality=60` di URL tanda tangan dan ini jadi tidak terlalu genting.
+- **Baris meta kartu harus muat SATU baris di layar 390px.** Diperiksa dengan jepretan
+  Playwright, bukan dikira-kira: versi pertama membungkus jadi dua baris di 4 dari 6 kartu.
+  Yang menjaga itu: tanggal kartu **tanpa tahun** (`tglTeks(k,true)` — tahunnya sudah ada di
+  judul bulan tepat di atasnya) dan **"N hari" hanya ditulis kalau lebih dari 1**. Kalau
+  menambah sesuatu ke baris ini, jepret ulang dan hitung berapa kartu yang membungkus.
 - **Kartu menulis rupiahnya**, lewat `uangRingkas(k)`, di **AWAL** baris meta —
-  `Rp 516rb/org · 28 Okt 2026 · 1 hari · Aston Bintaro`. Taruh di awal, jangan di ujung:
+  `Rp 516rb/org · 28 Okt · Aston Bintaro`. Taruh di awal, jangan di ujung:
   tiap kartu mulai di x yang sama sehingga angkanya jadi kolom rata kiri yang gampang
   disusuri waktu mencocokkan dengan daftar SPJ, sedangkan di ujung lokasi yang panjang
   akan mendorongnya keluar layar. Akhiran `/org` wajib — angkanya per orang, bukan total
