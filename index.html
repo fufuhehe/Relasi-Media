@@ -253,9 +253,12 @@ function transportLuar(t){
 function tarifKota(lok){
   /* Jakarta->Bodetabek punya tarif sendiri per kota, tidak bisa dihitung
      dari tarif provinsi. Yang namanya paling panjang menang, supaya
-     "tangerang selatan" tidak kalah sama "tangerang". */
-  if(!lok) return 0;
-  var s=String(lok).toLowerCase(), nilai=0, pjg=0;
+     "tangerang selatan" tidak kalah sama "tangerang".
+     Balasannya null kalau kotanya tidak terdaftar (jatuh ke rumus provinsi),
+     dan ANGKA kalau terdaftar - termasuk 0, yang artinya at-cost: bensin
+     dan tol diganti sesuai kuitansi, tidak ada yang masuk kantong. */
+  if(!lok) return null;
+  var s=String(lok).toLowerCase(), nilai=null, pjg=-1;
   for(var i=0;i<DB.kota.length;i++){
     var n=String(DB.kota[i].kota||"").toLowerCase();
     if(n&&s.indexOf(n)>=0&&n.length>pjg){pjg=n.length;nilai=num(DB.kota[i].tarif,0);}}
@@ -268,12 +271,12 @@ function rinciJalan(k){
   if(!t) return {uh:0,transport:0,total:0,hn:hn,hm:hm,lengkap:false,tarifAda:false,kota:false};
   var uh=hn*num(luar?t.uang_harian_luar:t.uang_harian_dalam,0)
         +hm*(nginap(k)?cfg("uang_saku_fullboard",130000):0);
-  var kota=luar?tarifKota(k.lokasi):0;
+  var kota=luar?tarifKota(k.lokasi):null;
   /* Transport dibayar SEKALI per perjalanan, tidak dikali jumlah hari.
      Dibuktikan di SPJ: Bekasi 2 hari = 512rb, Bali 3 hari = 938rb. */
-  var satuan=kota||(luar?transportLuar(t):num(t.transport_dalam,0));
+  var satuan=(kota!==null)?kota:(luar?transportLuar(t):num(t.transport_dalam,0));
   return {uh:uh,transport:satuan,total:uh+satuan,hn:hn,hm:hm,
-          lengkap:satuan>0,tarifAda:true,kota:kota>0};}
+          lengkap:satuan>0||kota===0,tarifAda:true,kota:kota!==null};}
 function nginap(k){return k&&k.tier==="luar_inap";}
 function skorJalan(k){return rinciJalan(k).total;}
 function skorBeban(k,ketua){
@@ -821,7 +824,7 @@ function viewAdmin(){
     '<div class="meta" style="margin-top:8px"><b>Tarif khusus per kota</b> (Bodetabek) \u2014 dipakai duluan kalau namanya kebaca di lokasi.</div>'+
     DB.kota.map(function(x){
       return '<div class="pilih"><span class="nm">'+esc(x.kota)+
-        '<div class="meta">'+rupiah(num(x.tarif,0))+" PP</div></span>"+
+        '<div class="meta">'+(num(x.tarif,0)?rupiah(num(x.tarif,0))+" PP":"at-cost, tidak masuk kantong")+"</div></span>"+
         '<button class="kecil" data-aksi="kota-edit" data-v="'+esc(x.kota)+'">Ubah</button></div>';}).join("")+
     '<div class="aksi" style="margin:4px 0 10px"><button data-aksi="kota-baru">+ Tambah kota</button></div>'+
     DB.sbm.map(function(x){
@@ -1126,12 +1129,13 @@ function formSbm(prov){
 function formKota(nama){
   var x=null;
   for(var i=0;i<DB.kota.length;i++) if(DB.kota[i].kota===nama) x=DB.kota[i];
-  var h='<div class="meta">Tarif Jakarta \u2194 kota ini, sekali perjalanan PP. Dipakai kalau nama kota kebaca di kolom lokasi kegiatan. Isi 0 untuk menghapus.</div>'+
+  var h='<div class="meta">Tarif Jakarta \u2194 kota ini, sekali perjalanan PP. Dipakai kalau nama kota kebaca di kolom lokasi kegiatan. <b>Isi 0</b> kalau ke sana transportnya at-cost (bensin &amp; tol diganti kuitansi) \u2014 artinya tidak ada yang masuk kantong.</div>'+
     "<label>Nama kota (huruf kecil)</label>"+
     '<input id=kNama value="'+esc(x?x.kota:"")+'"'+(x?" readonly":"")+">"+
     "<label>Tarif PP (rupiah)</label>"+
     '<input id=kTarif type=number min=0 step=1000 value="'+(x?num(x.tarif,0):0)+'">'+
     '<div class="aksi"><button data-aksi="kota-simpan">Simpan</button>'+
+    (x?'<button data-aksi="kota-hapus" data-v="'+esc(x.kota)+'">Hapus</button>':"")+
     '<button data-aksi="tutup">Batal</button></div>';
   bukaModal(x?"Transport "+x.kota:"Tambah kota",h);}
 function formAnggota(a){
@@ -1301,6 +1305,11 @@ document.addEventListener("click",function(ev){
       .then(function(){stat("Tarif kota tersimpan");})
       .catch(function(e){stat("Gagal: "+e.message);});
     return;}
+  if(a==="kota-hapus"){
+    if(!confirm("Hapus tarif kota ini? Kegiatan ke sana balik ke hitungan provinsi.")) return;
+    rpc("keg_hapus_transport_kota",{p_pin:PIN,p_kota:v})
+      .then(function(){tutupModal();return muat();}).then(function(){stat("Dihapus");})
+      .catch(function(e){stat("Gagal: "+e.message);});return;}
   if(a==="ang-baru"){formAnggota(null);return;}
   if(a==="ang-edit"){formAnggota(angg(parseInt(v,10)));return;}
   if(a==="ang-simpan"){

@@ -13,6 +13,11 @@
 -- Jalankan SETELAH 23-taksi.sql. Aman diulang.
 -- =========================================================
 
+-- ---------- 0. Jaring pengaman ----------
+-- Kalau 23-taksi.sql belum sempat dijalankan, kolomnya dibikin di sini
+-- supaya skrip ini tidak gagal. Angkanya tetap dari 23 — jalankan itu juga.
+alter table keg_sbm add column if not exists taksi int not null default 0;
+
 -- ---------- 1. Tarif transport per kota ----------
 -- Jakarta -> Bodetabek punya tabel SBM sendiri. Angkanya TIDAK bisa
 -- diturunkan dari tarif taksi provinsi (Depok 496rb < Jakarta PP 500rb),
@@ -41,15 +46,23 @@ begin
   perform keg__wajib_pin(p_pin);
   v_kota := lower(btrim(coalesce(p_kota,'')));
   if v_kota = '' then raise exception 'Nama kota kosong'; end if;
-  if coalesce(p_tarif,0) <= 0 then
-    delete from keg_transport_kota where kota = v_kota;
-  else
-    insert into keg_transport_kota (kota, tarif) values (v_kota, p_tarif)
-    on conflict (kota) do update set tarif = excluded.tarif;
-  end if;
+  -- Tarif 0 BOLEH dan ada artinya: "at-cost, tidak ada lumpsum yang
+  -- masuk kantong" (bensin + tol diganti sesuai kuitansi). Beda dengan
+  -- kota yang tidak terdaftar, yang jatuh ke rumus provinsi.
+  insert into keg_transport_kota (kota, tarif) values (v_kota, greatest(0, coalesce(p_tarif,0)))
+  on conflict (kota) do update set tarif = excluded.tarif;
 end $$;
 revoke all on function keg_set_transport_kota(text,text,int) from public;
 grant execute on function keg_set_transport_kota(text,text,int) to anon;
+
+create or replace function keg_hapus_transport_kota(p_pin text, p_kota text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  perform keg__wajib_pin(p_pin);
+  delete from keg_transport_kota where kota = lower(btrim(coalesce(p_kota,'')));
+end $$;
+revoke all on function keg_hapus_transport_kota(text,text) from public;
+grant execute on function keg_hapus_transport_kota(text,text) to anon;
 
 -- ---------- 3. keg_data ikut mengirim daftar kota ----------
 create or replace function keg_data(p_sandi text)
@@ -79,8 +92,7 @@ insert into keg_config (kunci, nilai) values ('faktor_transport','2')
 on conflict (kunci) do update set nilai = '2';
 
 -- ---------- Lihat hasilnya ----------
-select 'kota' as jenis, kota as nama, tarif from keg_transport_kota
-union all
-select 'provinsi', provinsi, (select taksi from keg_sbm b where b.provinsi='DKI Jakarta') + taksi
-  from keg_sbm a where taksi > 0
-order by 1, 2;
+select kota as nama,
+       case when tarif = 0 then 'at-cost (bensin/tol, tidak masuk kantong)'
+            else to_char(tarif, 'FM999G999G999') || ' PP' end as tarif
+  from keg_transport_kota order by kota;

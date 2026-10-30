@@ -239,6 +239,20 @@ bekasi 512rb, tangerang selatan 516rb. Dicocokkan dengan `indexOf` huruf kecil, 
 terpanjang menang** (biar "tangerang selatan" tidak kalah sama "tangerang"). Kota yang belum
 terdaftar jatuh ke jalur 3 — tambahkan lewat Admin → Tarif transport → Tambah kota.
 
+**`tarifKota()` membedakan tiga keadaan, jangan disederhanakan jadi angka saja:**
+
+| balasan | artinya | akibatnya |
+|---|---|---|
+| `null` | kota tidak terdaftar | jatuh ke jalur 2/3 |
+| `0` | **at-cost** — bensin & tol diganti kuitansi | transport nol, DAN dianggap sudah lengkap |
+| angka | lumpsum PP | dipakai apa adanya |
+
+At-cost nol itu disengaja dan sejalan dengan aturan hotel/tiket: yang diganti kuitansi tidak
+masuk kantong, jadi bukan rezeki. Di tempat Ibot, **Serang / Karawang / Bandung dibayar
+at-cost kalau bawa mobil sendiri**. Karena itu `keg_set_transport_kota` MENYIMPAN tarif 0
+(tidak lagi memperlakukannya sebagai perintah hapus); hapus baris punya fungsi sendiri,
+`keg_hapus_transport_kota`.
+
 **2. Dalam kota** — `transport_dalam`, Jakarta 170rb. Ini yang bikin dinas Jakarta kecil:
 homebase-nya Jakarta, jadi tidak ada taksi dua ujung.
 
