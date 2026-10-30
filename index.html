@@ -725,7 +725,7 @@ function caraHitung(){
       '<div class="meta">Mengikuti SBM Kemenkeu (PMK 32/2025, TA 2026). Hanya komponen yang masuk kantong — hotel dan tiket tidak dihitung karena diganti sesuai kuitansi.</div>'+
       "<table>"+
       "<tr><td>Uang harian, hari biasa</td><td class=n>tarif provinsi × hari</td></tr>"+
-      "<tr><td>Uang harian, hari paket meeting</td><td class=n>"+rupiah(fb)+" kalau menginap, selain itu 0</td></tr>"+
+      "<tr><td>Uang harian, hari ditanggung panitia</td><td class=n>"+rupiah(fb)+" kalau menginap, selain itu 0</td></tr>"+
       "<tr><td>Transport</td><td class=n>sekali PP per perjalanan</td></tr>"+
       "<tr><td>Transport Bodetabek</td><td class=n>tarif khusus per kota</td></tr></table>"+
       '<div class="meta" style="margin-top:6px">Contoh '+esc(DB.config.provinsi_basis||"DKI Jakarta")+
@@ -899,10 +899,10 @@ function formCatat(){
       return '<button data-aksi="set-beban" data-v="'+n+'" class="'+(f.tingkat_beban===n?"tekan":"")+'">'+
         BEBAN[n]+"</button>";}).join("")+"</div>"+
     "<label>Provinsi</label><select data-f=provinsi>"+opsiProvinsi(f.provinsi)+"</select>"+
-    "<label>Berapa hari yang paket meeting?</label>"+
+    "<label>Berapa hari yang makannya ditanggung panitia?</label>"+
     '<input data-f=hari_meeting type=number min=0 max="'+num(f.jumlah_hari,1)+'" value="'+
       Math.min(num(f.hari_meeting,0),num(f.jumlah_hari,1))+'">'+
-    '<div class="meta">Hari meeting tidak dapat uang harian penuh. Kalau menginap dapat '+
+    '<div class="meta">Termasuk waktu kamu jadi narasumber di acara orang lain \u2014 patokannya konsumsi ditanggung, bukan kata "meeting". Hari begini tidak dapat uang harian penuh; kalau menginap dapat '+
       rupiah(cfg("uang_saku_fullboard",130000))+" per hari.</div>"+
     rincianHTML(f)+"</details>";
 
@@ -944,7 +944,7 @@ function rincianHTML(f){
   if(!r.tarifAda) return '<div class="meta" style="margin-top:8px">Tarif provinsi belum ada.</div>';
   var baris=[];
   if(r.hn) baris.push(r.hn+" hari uang harian");
-  if(r.hm) baris.push(r.hm+" hari paket meeting");
+  if(r.hm) baris.push(r.hm+" hari ditanggung panitia");
   return '<div class="meta" style="margin-top:8px"><b>'+rupiah(r.total)+" per orang</b> \u2014 "+
     rupiah(r.uh)+" uang harian"+(baris.length?" ("+baris.join(" + ")+")":"")+
     " + "+rupiah(r.transport)+" transport"+
@@ -1099,8 +1099,8 @@ function formJenis(j){
     [1,2,3].map(function(n){
       return '<option value="'+n+'"'+((j?j.tingkat_beban:2)===n?" selected":"")+">"+n+" \u2013 "+BEBAN[n]+"</option>";}).join("")+"</select>"+
     "<label>Paket meeting?</label><select id=jMeeting>"+
-    '<option value="0"'+(j&&j.paket_meeting?"":" selected")+">Bukan paket meeting</option>"+
-    '<option value="1"'+(j&&j.paket_meeting?" selected":"")+">Paket meeting (konsumsi ditanggung)</option></select>"+
+    '<option value="0"'+(j&&j.paket_meeting?"":" selected")+">Tidak, uang harian penuh</option>"+
+    '<option value="1"'+(j&&j.paket_meeting?" selected":"")+">Ya, ditanggung panitia (paket meeting / jadi narasumber)</option></select>"+
     "<label>Status</label><select id=jAktif>"+
     '<option value="1"'+(!j||j.aktif?" selected":"")+">Aktif</option>"+
     '<option value="0"'+(j&&!j.aktif?" selected":"")+">Nonaktif (sembunyikan)</option></select>"+

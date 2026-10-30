@@ -263,9 +263,25 @@ Catatan lain yang mengikat:
   Itu penggantian kuitansi, bukan yang masuk kantong — sengaja TIDAK dimodelkan.
 - `uang_saku_fullboard` bisa diubah dari Admin → Pengaturan skor (SBM ganti tiap tahun).
 
-**Dua catatan SPJ yang belum terjelaskan** — jangan dipaksa cocok, tanya Ibot dulu:
-- 15/06/2026 Bekasi 1 hari, uang harian **130.000** (angka fullboard) padahal pulang hari.
-- 10/05/2026 Banten 2 hari, uang harian **370.000** = satu hari saja, bukan dua.
+### Patokannya KONSUMSI DITANGGUNG, bukan kata "meeting"
+Dua catatan SPJ yang sempat tidak cocok ternyata menunjukkan ini — keduanya bukan paket
+meeting menurut Ibot:
+
+- **10/05/2026 Banten, 2 hari, uang harian 370.000** = satu hari saja (Banten 370rb/hari).
+  Ibot jadi **narasumber** di acara Pemprov Banten; hari itu makannya ditanggung panitia,
+  jadi uang hariannya nol. Modelnya sudah benar — yang salah cuma labelnya.
+- **15/06/2026, 1 hari, uang harian 130.000** = angka uang saku fullboard. Kemungkinan
+  besar dia peserta di acara orang lain yang paket fullboard. **Belum terpecahkan**: app
+  hanya memberi 130rb kalau tier `luar_inap`, jadi catatan semacam ini meleset 130rb.
+  Sengaja TIDAK ditambal dengan field baru — satu dari 57 catatan, nilainya kecil, dan
+  menambah field melanggar filosofi "sesederhana nyatat di kertas". Angkat lagi kalau
+  ternyata sering.
+
+Karena itu label `hari_meeting` di UI berbunyi **"Berapa hari yang makannya ditanggung
+panitia?"**, dan pilihan di master jenis berbunyi "Ya, ditanggung panitia (paket meeting /
+jadi narasumber)". Jangan dikembalikan ke kata "paket meeting" saja — Ibot akan menjawab
+"bukan meeting" untuk hari narasumber dan uang hariannya jadi dobel. Nama kolom di database
+tetap `hari_meeting` / `paket_meeting` supaya tidak perlu migrasi.
 
 Tes: `t15.js` mengadu rumus ke 10 catatan SPJ asli; `t14.js` hitungan transport & faktor;
 `t13.js` lima contoh awal. Jalankan ketiganya di `index.js` DAN `ios.js`.
