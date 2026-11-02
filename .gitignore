@@ -1,0 +1,10 @@
+# Hasil ekstraksi <script> dari HTML + modul sementara yang dibikin tes.
+# Semuanya dibikin ulang oleh `node ekstrak.js` di dalam folder uji/,
+# jadi jangan pernah dikomit -- salinan basi persis yang bikin t1.js
+# berbulan-bulan menguji kode mati (lihat CLAUDE.md).
+index.js
+ios.js
+uji/index.js
+uji/ios.js
+*_index.js
+*_ios.js

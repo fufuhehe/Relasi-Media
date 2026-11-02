@@ -192,7 +192,7 @@ luar          = tier != 'dalam_kota'
 nginap        = tier == 'luar_inap'
 
 uang harian = hari_biasa x (luar ? uang_harian_luar[prov] : uang_harian_dalam[prov])
-              hari_meeting dapat NOL
+            + (nginap ? hari_meeting x 130rb : 0)        <- tarif FULLBOARD, flat
 
 transport = tujuan terpilih ? tarif tujuan : (dalam kota ? transport_dalam : rumus provinsi)
             SEKALI per perjalanan, tidak dikali hari
@@ -285,17 +285,48 @@ Catatan lain yang mengikat:
   form catat DAN layar detail. **Jangan dihapus** — bug 1,47jt di atas lolos justru karena
   angkanya salah diam-diam.
 
-### Uang harian — hari yang ditanggung panitia dapat NOL
-Aturan dari Ibot (30 Okt 2026), menggantikan model uang saku fullboard:
+### Uang harian hari paket meeting — NGINAP dapat 130rb, PULANG HARI nol
+Dikoreksi 2 Nov 2026. Aturan 30 Okt ("paket meeting nol, titik") TERNYATA SALAH
+separuh: yang nol cuma yang pulang hari itu.
+
+Dasarnya **PMK 32/2025 butir 31.2, hal. 23** — "Uang Harian Kegiatan Rapat/Pertemuan
+di Luar Kantor: FULLBOARD, OH, Rp130.000". Tiga hal yang gampang keliru di sini:
+
+1. **FLAT, bukan per provinsi.** Satu angka untuk seluruh Indonesia. Tabel per
+   provinsi yang ada di butir 31.1 itu harga **paket** yang dibayar ke hotel
+   (halfday/fullday/fullboard), BUKAN uang harian — jangan tertukar.
+2. **Cuma FULLBOARD yang dapat.** Halfday dan fullday tidak dapat uang harian sama
+   sekali. Karena fullboard = menginap di tempat acara, patokan di kode adalah
+   `tier === 'luar_inap'`, bukan geografi.
+3. Butir 28.1 (hal. 16, kolom LUAR KOTA / DALAM KOTA) itu uang harian **perjalanan
+   dinas**, beda butir, beda hal. Itu yang dipakai hari-hari biasa.
 
 ```
-uang harian = (jumlah_hari - hari_meeting) x tarif provinsi
+nginap (luar_inap) → hari_meeting x uang_saku_fullboard (bawaan 130.000)
+pulang hari        → 0
 ```
 
-- Hari yang konsumsinya ditanggung panitia → **nol, titik**. Tidak ada lagi 130rb
-  untuk yang menginap; `uang_saku_fullboard` sudah dibuang dari panel admin.
-- 3 hari dengan meeting di hari kedua → uang harian **2 hari**. Meeting 3 hari → **0**.
-- Patokannya **konsumsi ditanggung**, BUKAN kata "meeting". Waktu Ibot jadi narasumber
+**Kenapa patokannya nginap, bukan "Jabodetabek"?** Ibot menyebutnya "Jabodetabek
+cuma transport", dan hasilnya memang sama — tapi sebabnya bukan jaraknya,
+melainkan rapat Jabodetabek itu pulang hari (fullday/halfday). Memakai nginap
+membuat dua kasus ini ikut benar: rapat sehari di Surabaya tetap nol, dan
+fullboard di Bogor tetap dapat 130rb. Jangan diganti jadi pengecekan provinsi.
+
+Tiga catatan SPJ yang mengunci aturan ini — semuanya paket meeting pulang hari,
+uang hariannya nol, yang masuk cuma transport: Jakarta 170rb, Bogor 540rb,
+Depok 496rb. Sebaliknya SPD 15/06/2026 uang hariannya persis **130.000** — itu
+fullboard, dan dulu sempat ditulis "belum terpecahkan" di sini.
+
+- Angkanya knob admin `uang_saku_fullboard` (nama kolom lama dipertahankan supaya
+  tidak perlu migrasi; `setup-22-sbm.sql` sudah mengisinya 130000). Isi **0** kalau
+  suatu saat dihapus SBM — tidak perlu ubah kode. Default di kode juga 130000 lewat
+  `cfg()`, jadi tetap jalan kalau barisnya hilang.
+- `rinciJalan` mengembalikan **`fb`** (rupiah fullboard-nya) supaya `rincianHTML`
+  bisa menulis "1 hari paket meeting fullboard" vs "1 hari paket meeting — nol".
+  Jangan dihapus: tanpa itu angkanya berubah diam-diam, persis bug 1,47jt dulu.
+- 3 hari nginap dengan meeting di hari kedua → 2 hari tarif provinsi + 1 x 130rb.
+  Meeting 3 hari sambil nginap → 3 x 130rb, bukan nol.
+- Patokan hari_meeting tetap **konsumsi ditanggung**, BUKAN kata "meeting". Waktu Ibot jadi narasumber
   di acara instansi lain, makannya ditanggung panitia, jadi hari itu nol juga —
   dibuktikan SPD 10/05/2026 Banten 2 hari yang uang hariannya cuma 370rb (satu hari).
 - Label form berbunyi **"Berapa hari paket meeting?"** (atas permintaan Ibot), tapi

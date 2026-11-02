@@ -36,11 +36,12 @@ cek('meeting Bogor 1 hari = 540rb',
   M.skorJalan(K({tier:'luar_pp',provinsi:'Jawa Barat',hari_meeting:1})), 540000);
 cek('produksi konten Bogor 1 hari = 970rb',
   M.skorJalan(K({tier:'luar_pp',provinsi:'Jawa Barat',hari_meeting:0})), 970000);
-/* Dikoreksi 30 Okt: hari yang ditanggung panitia TIDAK dapat uang harian
-   sama sekali -- uang saku fullboard 130rb dibuang atas keputusan Ibot. */
-cek('3 hari nginap Jabar, meeting hari ke-2 = 2xUH + transport sekali',
+/* Dikoreksi 2 Nov: hari paket meeting dapat uang harian FULLBOARD 130rb
+   (PMK 32/2025 butir 31.2, flat semua provinsi), bukan nol. Yang nol cuma
+   halfday/fullday alias pulang hari itu. */
+cek('3 hari nginap Jabar, meeting hari ke-2 = 2xUH + 130rb + transport sekali',
   M.skorJalan(K({tier:'luar_inap',provinsi:'Jawa Barat',jumlah_hari:3,hari_meeting:1})),
-  2*430000 + 540000);
+  2*430000 + 130000 + 540000);
 
 console.log('--- aturan transport: SEKALI per perjalanan ---');
 /* Dikoreksi dari dugaan awal "berulang tiap hari". SPJ 2026 membuktikan
@@ -54,12 +55,12 @@ cek('luar kota PP 2 hari bolak-balik: tetap sekali',
   M.rinciJalan(K({tier:'luar_pp',provinsi:'Jawa Barat',jumlah_hari:2})).transport, 540000);
 
 console.log('--- paket meeting ---');
-cek('meeting pulang hari: tidak ada uang saku',
+cek('meeting pulang hari: nol (halfday/fullday)',
   M.rinciJalan(K({tier:'luar_pp',provinsi:'Jawa Barat',hari_meeting:1})).uh, 0);
-cek('meeting nginap juga nol, bukan 130rb',
-  M.rinciJalan(K({tier:'luar_inap',provinsi:'Jawa Barat',jumlah_hari:2,hari_meeting:2})).uh, 0);
+cek('meeting nginap: 130rb per hari (fullboard)',
+  M.rinciJalan(K({tier:'luar_inap',provinsi:'Jawa Barat',jumlah_hari:2,hari_meeting:2})).uh, 260000);
 cek('hari_meeting melebihi jumlah hari dibatasi',
-  M.rinciJalan(K({tier:'luar_inap',provinsi:'Jawa Barat',jumlah_hari:2,hari_meeting:9})).uh, 0);
+  M.rinciJalan(K({tier:'luar_inap',provinsi:'Jawa Barat',jumlah_hari:2,hari_meeting:9})).uh, 260000);
 
 console.log('--- provinsi kosong pakai basis ---');
 cek('provinsi null -> DKI Jakarta', M.provKeg(K({})), 'DKI Jakarta');

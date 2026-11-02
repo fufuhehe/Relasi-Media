@@ -23,7 +23,7 @@ src+="\nmodule.exports={rinciJalan,skorJalan,kotaKeg,provKeg,transportLuar,tarif
 fs.writeFileSync('p_'+FILE,src);
 const M=require('./p_'+FILE), {DB}=M;
 
-DB.config={provinsi_basis:'DKI Jakarta',faktor_transport:'2'};
+DB.config={provinsi_basis:'DKI Jakarta',faktor_transport:'2',uang_saku_fullboard:'130000'};
 DB.sbm=[
  {provinsi:'DKI Jakarta',        uang_harian_luar:530000,uang_harian_dalam:210000,transport_dalam:170000,transport_luar:0,taksi:250000,urutan:13},
  {provinsi:'Jawa Barat',         uang_harian_luar:430000,uang_harian_dalam:170000,transport_dalam:0,transport_luar:0,taksi:180000,urutan:12},
@@ -90,16 +90,22 @@ cek('Bali nginap 5 hari: tetap 938rb',
   M.rinciJalan(K({tier:'luar_inap',provinsi:'Bali',jumlah_hari:5})).transport, 938000);
 
 console.log('--- aturan hari meeting ---');
-cek('3 hari, meeting hari kedua -> uang harian 2 hari',
-  M.rinciJalan(K({tier:'luar_inap',provinsi:'Bali',jumlah_hari:3,hari_meeting:1})).uh, 960000);
-cek('3 hari, meeting 3 hari -> uang harian 0',
-  M.rinciJalan(K({tier:'luar_inap',provinsi:'Bali',jumlah_hari:3,hari_meeting:3})).uh, 0);
-cek('1 hari paket meeting -> 0, bukan 130rb',
+cek('3 hari nginap, meeting hari kedua -> 2 hari penuh + 1 fullboard',
+  M.rinciJalan(K({tier:'luar_inap',provinsi:'Bali',jumlah_hari:3,hari_meeting:1})).uh, 960000+130000);
+cek('3 hari nginap, meeting 3 hari -> fullboard semua',
+  M.rinciJalan(K({tier:'luar_inap',provinsi:'Bali',jumlah_hari:3,hari_meeting:3})).uh, 3*130000);
+/* Depok = pulang hari (luar_pp), jadi halfday/fullday: NOL. Ini yang
+   dibuktikan SPJ -- meeting Jakarta 170rb & Bogor 540rb, transport saja. */
+cek('paket meeting pulang hari -> 0, bukan 130rb',
   M.rinciJalan(K({kota:'Kota Depok',hari_meeting:1})).uh, 0);
-cek('nginap 1 hari paket meeting -> tetap 0',
-  M.rinciJalan(K({tier:'luar_inap',provinsi:'Bali',jumlah_hari:1,hari_meeting:1})).uh, 0);
+cek('nginap 1 hari paket meeting -> 130rb',
+  M.rinciJalan(K({tier:'luar_inap',provinsi:'Bali',jumlah_hari:1,hari_meeting:1})).uh, 130000);
 cek('hari meeting dibatasi jumlah hari',
   M.rinciJalan(K({provinsi:'Jawa Barat',jumlah_hari:2,hari_meeting:9})).uh, 0);
+cek('fullboard ikut config, bisa dimatikan jadi 0',
+  (function(){var s=DB.config.uang_saku_fullboard; DB.config.uang_saku_fullboard='0';
+   var v=M.rinciJalan(K({tier:'luar_inap',provinsi:'Bali',jumlah_hari:2,hari_meeting:2})).uh;
+   DB.config.uang_saku_fullboard=s; return v;})(), 0);
 
 console.log('--- tujuan di provinsi sendiri = dalam kota ---');
 /* Rumus jalur 3 menganggap berangkat dari LUAR provinsi. Dipakai untuk
@@ -195,7 +201,7 @@ const h=M.viewAdmin();
 cek('daftar tujuan tampil', (h.match(/data-aksi="kota-edit"/g)||[]).length, 12);
 cek('pilihan paket meeting ada di master jenis',
   require('fs').readFileSync(FILE,'utf8').indexOf('ditanggung panitia (paket meeting / jadi narasumber)')>=0, true);
-cek('knob uang saku fullboard sudah dibuang', h.indexOf('uang_saku_fullboard')>=0, false);
+cek('knob uang harian fullboard ada di admin', h.indexOf('uang_saku_fullboard')>=0, true);
 
 console.log(gagal?'\n>>> '+gagal+' TES GAGAL':'\n>>> SEMUA TES LULUS');
 process.exit(gagal?1:0);

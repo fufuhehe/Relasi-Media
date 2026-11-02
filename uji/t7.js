@@ -60,7 +60,8 @@ cek('tombol tambah kegiatan ada', h.indexOf('jenis-baru')>=0, true);
 cek('tombol tambah orang ada', h.indexOf('ang-baru')>=0, true);
 cek('daftar jenis terender', (h.match(/data-aksi="jenis-edit"/g)||[]).length, 2);
 cek('daftar orang terender', (h.match(/data-aksi="ang-edit"/g)||[]).length, 3);
-cek("field pengaturan skor ada", (h.match(/data-cfg="/g)||[]).length, 5);
+/* 6 = nama_tim, uang_saku_fullboard, faktor_transport, faktor_ketua, sandi, pin */
+cek("field pengaturan skor ada", (h.match(/data-cfg="/g)||[]).length, 6);
 cek('knob poin_luar_inap sudah dibuang', h.indexOf('poin_luar_inap')>=0, false);
 cek('ada field sandi tim', h.indexOf('data-cfg="sandi"')>=0, true);
 cek('field sandi dikosongkan, bukan menampilkan yang lama',

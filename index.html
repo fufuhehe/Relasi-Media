@@ -279,10 +279,20 @@ function rinciJalan(k){
   var luar=(k.tier!=="dalam_kota") && !samaProv;
   if(!t) return {uh:0,transport:0,total:0,hn:hn,hm:hm,
                  lengkap:false,tarifAda:false,kota:!!kt,asal:""};
-  /* Hari yang ditanggung panitia TIDAK dapat uang harian sama sekali.
-     3 hari dengan meeting di hari kedua -> uang harian 2 hari.
-     3 hari meeting semua -> nol. */
-  var uh=hn*num(luar?t.uang_harian_luar:t.uang_harian_dalam,0);
+  /* Hari paket meeting TETAP dapat uang harian, tapi tarif FULLBOARD --
+     PMK 32/2025 butir 31.2 (hal. 23): "FULLBOARD, OH, Rp130.000". Itu
+     FLAT, satu angka untuk semua provinsi; tabel per provinsi di butir
+     31.1 itu harga PAKET yang dibayar ke hotel, bukan uang harian.
+     Halfday & fullday TIDAK dapat uang harian. Halfday/fullday = pulang
+     hari itu, jadi patokannya di sini: nginap atau tidak.
+       nginap  -> hm x 130rb  (fullboard)
+       pulang  -> 0           (halfday/fullday)
+     Ini yang bikin meeting Jakarta & Bodetabek cuma dapat transport,
+     cocok persis dengan SPJ: meeting Jakarta 170rb, meeting Bogor 540rb.
+     Hari biasa tetap tarif perjalanan dinas provinsinya (butir 28.1). */
+  var inap=k.tier==="luar_inap";
+  var fb=inap?hm*cfg("uang_saku_fullboard",130000):0;
+  var uh=hn*num(luar?t.uang_harian_luar:t.uang_harian_dalam,0)+fb;
   /* Transport dibayar SEKALI per perjalanan, tidak dikali jumlah hari.
      Dibuktikan di SPJ: Bekasi 2 hari = 512rb, Bali 3 hari = 938rb. */
   var transport, asal, lengkap;
@@ -298,7 +308,7 @@ function rinciJalan(k){
     transport=transportLuar(t);
     asal="hitungan provinsi "+t.provinsi;
     lengkap=transport>0;}
-  return {uh:uh,transport:transport,total:uh+transport,hn:hn,hm:hm,
+  return {uh:uh,transport:transport,total:uh+transport,hn:hn,hm:hm,fb:fb,
           lengkap:lengkap,tarifAda:true,kota:!!kt,asal:asal};}
 function skorJalan(k){return rinciJalan(k).total;}
 function perJenis(daftar){
@@ -747,7 +757,8 @@ function caraHitung(){
       '<div class="meta">Mengikuti SBM Kemenkeu (PMK 32/2025, TA 2026). Hanya komponen yang masuk kantong — hotel dan tiket tidak dihitung karena diganti sesuai kuitansi.</div>'+
       "<table>"+
       "<tr><td>Uang harian, hari biasa</td><td class=n>tarif provinsi × hari</td></tr>"+
-      "<tr><td>Uang harian, hari ditanggung panitia</td><td class=n>0</td></tr>"+
+      "<tr><td>Uang harian, hari paket meeting <i>nginap</i></td><td class=n>"+rupiah(cfg("uang_saku_fullboard",130000))+" / hari (fullboard)</td></tr>"+
+      "<tr><td>Uang harian, hari paket meeting <i>pulang hari</i></td><td class=n>0 (halfday/fullday)</td></tr>"+
       "<tr><td>Transport</td><td class=n>sekali PP per perjalanan</td></tr>"+
       "<tr><td>Transport Bodetabek</td><td class=n>tarif khusus per kota</td></tr></table>"+
       '<div class="meta" style="margin-top:6px">Contoh '+esc(DB.config.provinsi_basis||"DKI Jakarta")+
@@ -864,6 +875,7 @@ function viewAdmin(){
     DB.anggota.length);
   var c=[["nama_tim","Judul app","text"],
     ["faktor_transport","Pengali transport terminal (2 = PP, sesuai SPJ)","number"],
+    ["uang_saku_fullboard","Uang harian paket meeting nginap / hari (PMK 31.2)","number"],
     ["faktor_ketua","Faktor beban ketua","number"]];
   h+=adm("skor","Pengaturan skor &amp; PIN",
     c.map(function(x){return "<label>"+x[1]+'</label><input data-cfg="'+x[0]+'" type="'+x[2]+
@@ -970,7 +982,7 @@ function rincianHTML(f){
   if(!r.tarifAda) return '<div class="meta" style="margin-top:8px">Tarif provinsi belum ada.</div>';
   var baris=[];
   if(r.hn) baris.push(r.hn+" hari uang harian");
-  if(r.hm) baris.push(r.hm+" hari ditanggung panitia");
+  if(r.hm) baris.push(r.hm+" hari paket meeting"+(r.fb?" fullboard":" \u2014 nol"));
   return '<div class="meta" style="margin-top:8px"><b>'+rupiah(r.total)+" per orang</b> \u2014 "+
     rupiah(r.uh)+" uang harian"+(baris.length?" ("+baris.join(" + ")+")":"")+
     " + "+rupiah(r.transport)+" transport"+
