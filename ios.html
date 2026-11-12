@@ -482,7 +482,7 @@ function batas(){
   return {dari:PERIODE.tahun+"-01-01",sampai:PERIODE.tahun+"-12-31"};}
 function dalamPeriode(k,b){
   if(!b.dari) return true;
-  if(!k.tanggal) return true;           // belum bertanggal: selalu ikut dihitung
+  if(!k.tanggal) return false;          // belum bertanggal: tidak punya periode, jadi tidak ikut
   return !(akhir(k)<b.dari || k.tanggal>b.sampai);}
 function rekap(fj){
   var jf=(fj===undefined)?PERIODE.jenis:fj;
@@ -566,9 +566,14 @@ function ringkasHTML(){
     var b=batas(), jf=PERIODE.jenis;
     arr=DB.kegiatan.filter(function(k){return dalamPeriode(k,b)&&(!jf||k.jenis_id===jf);});
     j=jf?cari(DB.jenis,jf):null;
-    blm=arr.filter(function(k){return !k.tanggal;}).length;
+    /* Dihitung dari SELURUH catatan, bukan dari arr. Yang belum bertanggal
+       sekarang tidak lolos dalamPeriode, jadi kalau dihitung dari arr
+       angkanya selalu 0 -- peringatannya hilang justru waktu paling perlu. */
+    blm=DB.kegiatan.filter(function(k){return !k.tanggal&&(!jf||k.jenis_id===jf);}).length;
     return "<b>"+arr.length+"</b> kegiatan"+(PERIODE.tahun?" di "+PERIODE.tahun:"")+
-      (j?" · "+esc(j.nama):"")+(blm?' · <b>'+blm+"</b> belum bertanggal":"");}
+      (j?" · "+esc(j.nama):"")+
+      (blm?' · <b>'+blm+"</b> belum bertanggal"+
+           (PERIODE.tahun?" (di luar hitungan)":""):"");}
   var cf=(TAB==="catat")?CATAT_JENIS:0;
   arr=DB.kegiatan.filter(function(k){return !cf||k.jenis_id===cf;});
   j=cf?cari(DB.jenis,cf):null;
@@ -1039,7 +1044,7 @@ function formCatat(){
   h+='<div class="sect">Jadwal</div><div class="list">'+
     '<div class="ffield"><label>Tanggal</label><input data-f=tanggal type=date value="'+(f.tanggal||"")+'"></div>'+
     '<div class="ffield"><label>Jumlah hari</label><input data-f=jumlah_hari type=number min=1 max=60 value="'+num(f.jumlah_hari,1)+'"></div>'+
-    "</div>"+'<div class="note">Tanggal boleh kosong \u2014 catatan tanpa tanggal tetap dihitung.</div>';
+    "</div>"+'<div class="note">Tanggal boleh kosong, tapi yang kosong tidak ikut rekap per tahun.</div>';
   h+='<div class="sect">Bobot</div><div class="list"><details'+(f.ubahBobot?" open":"")+">"+
     '<summary class="frow"><span class="fl">Hitungan</span><span class="ctlval">'+TIERP[f.tier]+" \u00b7 "+BEBAN[f.tingkat_beban]+" \u00b7 "+rupiah(skorJalan(f))+"</span></summary>"+
     '<div style="padding:2px 16px 14px">'+

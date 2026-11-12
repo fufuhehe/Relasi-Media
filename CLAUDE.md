@@ -393,8 +393,20 @@ Aturan yang gampang terlanggar saat menambah fitur:
 
 1. **`jumlah_hari` adalah kolom sendiri, bukan selisih tanggal** — supaya catatan tanpa
    tanggal tetap punya bobot.
-2. **Catatan tanpa tanggal selalu ikut dihitung di periode manapun** — sengaja, supaya tidak
-   hilang dari rekap sebelum tanggalnya diisi.
+2. **Catatan tanpa tanggal TIDAK ikut rekap per tahun**, tapi tetap ikut di "semua waktu".
+   Dibalik 12 Nov 2026 atas permintaan Ibot; sebelumnya catatan kosong ikut di periode
+   manapun. Alasan pembalikan: satu catatan tanpa tanggal dihitung di SETIAP tahun, jadi
+   membandingkan 2025 vs 2026 jadi ngawur dan angkanya dobel. `dalamPeriode()` sekarang
+   `return false` untuk tanggal kosong — tapi cuma kalau `batas().dari` ada, dan itu null
+   waktu "semua waktu", jadi di sana semuanya tetap terhitung. Jangan "rapikan" dengan
+   memindah pengecekan tanggal ke atas pengecekan `b.dari`.
+
+   **Jebakan yang menyertainya:** penghitung "N belum bertanggal" di tab Tim dulu dihitung
+   dari `arr` yang SUDAH disaring `dalamPeriode`. Begitu catatan kosong dikeluarkan,
+   angkanya otomatis jadi 0 — peringatannya lenyap justru waktu paling dibutuhkan, dan
+   catatan yang belum diisi tanggalnya jadi tak terlihat selamanya. Sekarang dihitung dari
+   `DB.kegiatan` langsung. Kalau menambah filter baru di ringkasan, jaga sifat ini.
+   Peringatannya juga menulis **"(di luar hitungan)"** waktu ada tahun aktif. Tes: `t19.js`.
 3. **Semua angka yang tampil wajib lewat `bulat()`** — float JS menghasilkan
    `10.799999999999999`. Kalau menambah tampilan angka baru, jangan lupa.
 4. `rekap(fj)`: `undefined` = ikut `PERIODE.jenis`, `0` = paksa semua jenis (dipakai form

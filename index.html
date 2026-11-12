@@ -364,7 +364,7 @@ function batas(){
   return {dari:PERIODE.tahun+"-01-01",sampai:PERIODE.tahun+"-12-31"};}
 function dalamPeriode(k,b){
   if(!b.dari) return true;
-  if(!k.tanggal) return true;           // belum bertanggal: selalu ikut dihitung
+  if(!k.tanggal) return false;          // belum bertanggal: tidak punya periode, jadi tidak ikut
   return !(akhir(k)<b.dari || k.tanggal>b.sampai);}
 function rekap(fj){
   var jf=(fj===undefined)?PERIODE.jenis:fj;
@@ -651,9 +651,14 @@ function ringkasHTML(){
     var b=batas(), jf=PERIODE.jenis;
     arr=DB.kegiatan.filter(function(k){return dalamPeriode(k,b)&&(!jf||k.jenis_id===jf);});
     j=jf?cari(DB.jenis,jf):null;
-    blm=arr.filter(function(k){return !k.tanggal;}).length;
+    /* Dihitung dari SELURUH catatan, bukan dari arr. Yang belum bertanggal
+       sekarang tidak lolos dalamPeriode, jadi kalau dihitung dari arr
+       angkanya selalu 0 -- peringatannya hilang justru waktu paling perlu. */
+    blm=DB.kegiatan.filter(function(k){return !k.tanggal&&(!jf||k.jenis_id===jf);}).length;
     return "<b>"+arr.length+"</b> kegiatan"+(PERIODE.tahun?" di "+PERIODE.tahun:"")+
-      (j?" · "+esc(j.nama):"")+(blm?' · <b>'+blm+"</b> belum bertanggal":"");}
+      (j?" · "+esc(j.nama):"")+
+      (blm?' · <b>'+blm+"</b> belum bertanggal"+
+           (PERIODE.tahun?" (di luar hitungan)":""):"");}
   var cf=(TAB==="catat")?CATAT_JENIS:0;
   arr=DB.kegiatan.filter(function(k){return !cf||k.jenis_id===cf;});
   j=cf?cari(DB.jenis,cf):null;
@@ -920,7 +925,7 @@ function formCatat(){
       esc(j.nama)+"</option>";}).join("")+"</select>"+
     "<label>Keterangan (opsional)</label>"+
     '<input data-f=judul value="'+esc(f.judul)+'" placeholder="mis. wilayah Bogor">'+
-    '<div class="baris"><div><label>Tanggal (boleh kosong)</label>'+
+    '<div class="baris"><div><label>Tanggal (kosong = tak ikut rekap tahunan)</label>'+
       '<input data-f=tanggal type=date value="'+(f.tanggal||"")+'"></div>'+
       '<div><label>Jumlah hari</label>'+
       '<input data-f=jumlah_hari type=number min=1 max=60 value="'+num(f.jumlah_hari,1)+'"></div></div>'+
