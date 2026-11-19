@@ -172,7 +172,7 @@ details[open]>summary:before{content:"\25BE ";}
    menarik mata daripada hari yang ada isinya. */
 .kcell u{display:block;width:100%;height:7px;margin-top:auto;text-decoration:none;
   background:transparent;box-shadow:inset 0 0 0 1px var(--shadow);opacity:.55}
-.kcell u:has(s){opacity:1}
+.kcell u:has(s),.kcell u.adaTU{opacity:1}
 .kcell u s{display:flex;gap:1px;height:100%;text-decoration:none}
 .kcell u s b{flex:1;height:100%;background:var(--kbar)}
 .kcell.nihil{box-shadow:none;background:transparent;cursor:default}
@@ -814,9 +814,20 @@ function viewCatat(){
 /* Satu kegiatan n hari menandai n tanggal. Kuncinya "YYYY-MM-DD".
    Catatan tanpa tanggal tidak pernah muncul -- memang tidak punya tempat
    di grid; hitungannya dipajang sebagai tombol di atas kalender. */
+/* Yang dihitung CUMA tim inti. App ini monitor pemerataan tim inti;
+   Anak TU sudah dipisah di tab Tim, layar detail, dan rata-rata pembanding
+   -- kalender dulu satu-satunya tempat yang mencampur keduanya, jadi
+   batangnya tidak pernah bisa penuh walau seluruh tim inti jalan.
+   TU tidak disembunyikan: namanya tetap muncul di daftar kegiatan dalam
+   modal, cuma tidak ikut mengisi batang. */
+function intiAktif(){
+  return DB.anggota.filter(function(a){return a.aktif&&a.kategori!=="tu";}).length;}
 function petaTanggal(daftar){
+  var inti={};
+  DB.anggota.forEach(function(a){if(a.kategori!=="tu") inti[a.id]=true;});
   var pp={};
   DB.penugasan.forEach(function(p){
+    if(!inti[p.anggota_id]) return;
     (pp[p.kegiatan_id]=pp[p.kegiatan_id]||[]).push(p.anggota_id);});
   var peta={};
   (daftar||[]).forEach(function(k){
@@ -878,7 +889,7 @@ function viewKalender(){
   var thn=parseInt(p[0],10), mon=parseInt(p[1],10);
   var semua=kalDaftar();
   var peta=petaTanggal(semua);
-  var aktif=DB.anggota.filter(function(a){return a.aktif;}).length;
+  var aktif=intiAktif();
   var tanpa=semua.filter(function(k){return !k.tanggal;}).length;
   var kini=hariIni();
 
@@ -901,15 +912,17 @@ function viewKalender(){
     var d=peta[tgl], org=d?d.orang:0, w=kalBar(org,aktif);
     var sg=kalSegmen(d?d.n:0), pot="";
     for(var q=0;q<sg;q++) pot+="<b></b>";
-    var judul=d?(d.n+" kegiatan, "+org+" orang DL"):"belum ada catatan";
+    var judul=d?(d.n+" kegiatan, "+org+" orang DL"+
+      (d.n&&!org?" (tim inti tidak ikut)":"")):"belum ada catatan";
     sel.push('<button class="kcell'+(tgl===kini?" kini":"")+'"'+
       ' data-aksi="kal-tgl" data-v="'+tgl+'" title="'+esc(judul)+'">'+
-      "<i>"+i+"</i><u>"+(w?'<s style="width:'+w+'%">'+pot+"</s>":"")+"</u></button>");}
+      "<i>"+i+"</i><u"+(d&&!w?' class="adaTU"':"")+">"+
+      (w?'<s style="width:'+w+'%">'+pot+"</s>":"")+"</u></button>");}
   h+='<div class="kgrid">'+sel.join("")+"</div>";
 
   h+='<div class="kleg"><span>Panjang = orang DL:</span>'+
     '<u><b style="width:25%"></b></u><span>sedikit</span>'+
-    '<u><b style="width:100%"></b></u><span>'+(aktif||"?")+" orang.</span>"+
+    '<u><b style="width:100%"></b></u><span>'+(aktif||"?")+" orang tim inti.</span>"+
     '<span>Potongan = jumlah kegiatan:</span>'+
     '<u><s style="width:100%"><b></b><b></b><b></b></s></u><span>3 kegiatan</span></div>';
 

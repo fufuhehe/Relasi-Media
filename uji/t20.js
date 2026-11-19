@@ -19,7 +19,7 @@ global.localStorage={getItem:()=>null,setItem(){},removeItem(){}};
 global.sessionStorage={getItem:()=>null,setItem(){},removeItem(){}};
 global.navigator={}; global.window={matchMedia:()=>({matches:false})};
 src=src.replace(/\(function\(\)\{\n  try\{[\s\S]*$/,'');
-src+="\nmodule.exports={petaTanggal,kalBar,kalSegmen,kalGeserBulan,kalBulanAwal,kalDaftar,"
+src+="\nmodule.exports={petaTanggal,kalBar,kalSegmen,intiAktif,kalGeserBulan,kalBulanAwal,kalDaftar,"
  +"viewKalender,viewCatat,DB,setJenis:v=>{CATAT_JENIS=v},setLihat:v=>{LIHAT=v},"
  +"setBln:v=>{KAL_BLN=v},getBln:()=>KAL_BLN,setPin:p=>{PIN=p}};\n";
 fs.writeFileSync('m20_'+FILE,src);
@@ -93,6 +93,30 @@ cek('tanpa anggota aktif tidak bagi nol', M.kalBar(3,0), 100);
 cek('1 dari 13 dinaikkan ke lantai 14%', M.kalBar(1,13), 14);
 cek('1 dari 100 pun tetap kelihatan', M.kalBar(1,100), 14);
 cek('yang sudah di atas lantai tidak diutak-atik', M.kalBar(5,13), 38);
+
+console.log('--- cuma TIM INTI yang dihitung, TU tidak ---');
+/* App ini monitor pemerataan tim inti. Kalender dulu menghitung TU juga,
+   jadi batangnya tidak pernah bisa penuh walau seluruh tim inti jalan. */
+DB.anggota=[{id:1,nama:'A',kategori:'tim',aktif:true,urutan:1},
+            {id:2,nama:'B',kategori:'tim',aktif:true,urutan:2},
+            {id:3,nama:'C',kategori:'tu', aktif:true,urutan:3},
+            {id:4,nama:'D',kategori:'tu', aktif:true,urutan:4},
+            {id:5,nama:'E',kategori:'tim',aktif:false,urutan:5}];
+cek('penyebut cuma tim inti yang aktif', M.intiAktif(), 2);
+DB.kegiatan=[K({id:70,tanggal:'2026-11-02'})];
+DB.penugasan=[{kegiatan_id:70,anggota_id:1},{kegiatan_id:70,anggota_id:3},
+              {kegiatan_id:70,anggota_id:4}];
+pt=M.petaTanggal(DB.kegiatan);
+cek('3 orang jalan tapi cuma 1 tim inti', pt['2026-11-02'].orang, 1);
+cek('kegiatannya tetap kehitung', pt['2026-11-02'].n, 1);
+DB.penugasan=[{kegiatan_id:70,anggota_id:1},{kegiatan_id:70,anggota_id:2}];
+pt=M.petaTanggal(DB.kegiatan);
+cek('seluruh tim inti jalan -> batang penuh',
+  M.kalBar(pt['2026-11-02'].orang,M.intiAktif()), 100);
+DB.penugasan=[{kegiatan_id:70,anggota_id:3},{kegiatan_id:70,anggota_id:4}];
+pt=M.petaTanggal(DB.kegiatan);
+cek('cuma TU yang jalan -> nol orang', pt['2026-11-02'].orang, 0);
+cek('tapi kegiatannya tetap tercatat', pt['2026-11-02'].n, 1);
 
 console.log('--- kalSegmen: potongan = jumlah kegiatan ---');
 cek('tidak ada kegiatan -> tidak ada potongan', M.kalSegmen(0), 0);
@@ -171,6 +195,22 @@ cek('3 Nov: 1 kegiatan -> 1 potong', potong('2026-11-03'), 1);
 cek('5 Nov: 2 kegiatan -> 2 potong', potong('2026-11-05'), 2);
 cek('9 Nov: 5 kegiatan -> 4 potong (dibatasi)', potong('2026-11-09'), 4);
 cek('hari kosong: tidak ada batang sama sekali', potong('2026-11-04'), 0);
+/* Hari yang ada kegiatan tapi tim intinya nol: jalurnya tidak diredupkan,
+   supaya tidak terbaca sama persis dengan hari yang benar-benar kosong. */
+DB.kegiatan.push(K({id:68,tanggal:'2026-11-20'}));
+DB.anggota.push({id:9,nama:'TU',kategori:'tu',aktif:true,urutan:9});
+DB.penugasan.push({kegiatan_id:68,anggota_id:9});
+var h2=M.viewCatat();
+/* Dibatasi sampai </button> -- tanpa itu regexnya bocor ke sel berikutnya
+   dan hari kosong ikut terbaca bertanda. */
+function sel(tgl){
+  var m=h2.match(new RegExp('data-v="'+tgl+'"[^>]*>.*?</button>'));
+  return m?m[0]:'';}
+cek('hari TU-saja ditandai adaTU', sel('2026-11-20').indexOf('adaTU')>=0, true);
+cek('hari benar-benar kosong tidak ditandai', sel('2026-11-04').indexOf('adaTU')>=0, false);
+cek('hari TU-saja memang tanpa batang', sel('2026-11-20').indexOf('<s ')>=0, false);
+cek('judulnya bilang tim inti tidak ikut',
+  h2.indexOf('5 kegiatan, 0 orang DL')>=0||h2.indexOf('(tim inti tidak ikut)')>=0, true);
 /* Panjang total tetap ikut ORANG, bukan jumlah kegiatan: 5 Nov dan 9 Nov
    sama-sama cuma 1 orang yang keluar, jadi panjangnya harus sama. */
 function lebar(tgl){

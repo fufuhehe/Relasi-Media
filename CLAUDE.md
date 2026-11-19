@@ -566,9 +566,20 @@ Kalau suatu saat mau menambah sesuatu ke kalender, ukur dengan dua itu.
 - **Jalur batang transparan**, cuma digariskan tipis dan diredupkan. Versi
   pertama jalurnya putih pekat, jadi 24 hari kosong dalam sebulan malah lebih
   menarik mata daripada hari yang berisi.
-- Lebarnya relatif **anggota aktif**, bukan ambang tetap — penuh = satu tim
-  keluar semua, jadi jawabannya tetap "seberapa kosong kantor" walau jumlah tim
+- **Yang dihitung cuma TIM INTI** (`intiAktif()`, `kategori !== 'tu'`), bukan
+  semua anggota. App ini monitor pemerataan tim inti, dan seluruh app memang
+  sudah memisahkan keduanya — tab Tim, layar detail, `rataLain()`. Kalender
+  sempat jadi satu-satunya tempat yang mencampur, akibatnya batangnya tidak
+  pernah bisa penuh walau SELURUH tim inti jalan. Anak TU tidak disembunyikan:
+  namanya tetap muncul di daftar kegiatan dalam modal, cuma tidak mengisi
+  batang. Lebarnya relatif, bukan ambang tetap — penuh = seluruh tim inti
+  jalan, jadi jawabannya tetap "seberapa kosong kantor" walau jumlah tim
   berubah.
+- Hari yang ada kegiatan tapi **tim intinya nol** (cuma TU yang jalan) tidak
+  punya batang. Supaya tidak terbaca sama persis dengan hari yang benar-benar
+  kosong, jalurnya diberi class `adaTU` yang membatalkan peredupan, dan
+  `title`-nya menulis "(tim inti tidak ikut)". Sengaja setipis itu — menambah
+  simbol baru akan melanggar aturan satu sandi per sel.
 - Bulan pembuka: bulan ini kalau ada isinya, kalau kosong jatuh ke bulan
   terakhir yang ada catatannya (`kalBulanAwal`), biar tidak membuka grid kosong
   melompong waktu backfill ketinggalan.
