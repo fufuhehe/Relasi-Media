@@ -31,12 +31,14 @@
   --text:#000000; --textdim:#404040; --field:#ffffff; --fieldtext:#000000;
   --title1:#000080; --title2:#1084d0; --titletext:#ffffff;
   --sel:#000080; --seltext:#ffffff; --bar1:#000080; --bar2:#808000; --alert:#a00000;
+  --kbar:#000080;
 }
 html[data-tema="gelap"]{
   --face:#000000; --light:#ffffff; --soft:#c0c0c0; --shadow:#808080; --dark:#ffffff;
   --text:#ffffff; --textdim:#c0c0c0; --field:#000000; --fieldtext:#00ff00;
   --title1:#008080; --title2:#00c0c0; --titletext:#ffffff;
   --sel:#008080; --seltext:#ffffff; --bar1:#00ffff; --bar2:#ffff00; --alert:#ff6060;
+  --kbar:#00ffff;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -148,6 +150,39 @@ details.bln[open]>summary{margin-bottom:6px}
 details>summary::-webkit-details-marker{display:none}
 details>summary:before{content:"\25B8 ";}
 details[open]>summary:before{content:"\25BE ";}
+/* ---------- kalender ---------- */
+.kalbar{display:flex;align-items:center;gap:4px;margin:8px 0 4px}
+.kalbar .kalnm{flex:1;min-width:0;text-align:center;font-weight:bold}
+.kdow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px}
+.kdow span{text-align:center;font-size:11px;color:var(--textdim);padding:2px 0}
+.kdow span.ming{color:var(--alert)}
+.kgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.kcell{min-height:44px;padding:2px 1px;border:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;font:inherit;cursor:pointer;
+  background:var(--face);color:var(--text);
+  box-shadow:inset -1px -1px var(--dark),inset 1px 1px var(--light),
+             inset -2px -2px var(--shadow),inset 2px 2px var(--soft)}
+.kcell i{font-style:normal;font-size:15px;line-height:1.1}
+/* Satu sandi saja per sel: angka = TANGGAL, panjang batang = berapa orang.
+   Versi pertama menaruh jumlah orang sebagai angka kedua di dalam sel dan
+   terbaca seperti dua tanggal. Latar sel sengaja tidak ikut diwarnai --
+   panjang terbaca sebagai jumlah, warna cuma terbaca sebagai urutan. */
+/* Jalur batang sengaja TRANSPARAN, cuma digariskan tipis. Versi pertama
+   jalurnya putih pekat, jadi 24 hari kosong dalam sebulan malah lebih
+   menarik mata daripada hari yang ada isinya. */
+.kcell u{display:block;width:100%;height:7px;margin-top:auto;text-decoration:none;
+  background:transparent;box-shadow:inset 0 0 0 1px var(--shadow);opacity:.55}
+.kcell u:has(b){opacity:1}
+.kcell u b{display:block;height:100%;background:var(--kbar)}
+.kcell.nihil{box-shadow:none;background:transparent;cursor:default}
+.kcell.kini{outline:2px solid var(--alert);outline-offset:-2px}
+.kcell:focus-visible{outline:2px solid var(--bar2);outline-offset:-2px}
+.kleg{display:flex;align-items:center;gap:4px;flex-wrap:wrap;
+  margin-top:6px;font-size:11px;color:var(--textdim)}
+.kleg u{text-decoration:none;width:34px;height:7px;display:inline-block;
+  background:transparent;box-shadow:inset 0 0 0 1px var(--shadow)}
+.kleg u b{display:block;height:100%;background:var(--kbar)}
+.khari{padding:3px 0}
 </style>
 </head>
 <body>
@@ -174,6 +209,11 @@ var HDR={apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"applicatio
 var DB={anggota:[],jenis:[],kegiatan:[],penugasan:[],foto:[],sbm:[],kota:[],config:{}};
 var FOTO_URL={};
 var BULAN_BUKA=null;
+/* Cara lihat tab Kegiatan: "daftar" atau "kalender". Disimpan per perangkat,
+   pola sama dengan keg_tema & keg_tampilan. */
+var LIHAT=(function(){try{var v=localStorage.getItem("keg_lihat");
+  return v==="kalender"?"kalender":"daftar";}catch(e){return "daftar";}})();
+var KAL_BLN=null;      /* "YYYY-MM" yang sedang dilihat, null = belum dipilih */
 var ADMIN_BUKA={};
 var MODAL_KEG=null;
 var SANDI="", BARU=false, GERBANG=false;
@@ -188,6 +228,8 @@ var TIERP={dalam_kota:"Dlm kota",luar_pp:"Luar PP",luar_inap:"Luar nginep"};
 var BEBAN={1:"Ringan",2:"Sedang",3:"Berat"};
 var BLN3=["","Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
 var BLN=["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+var HARI=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+var DOW3=["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
 
 /* ---------- util ---------- */
 function $(s){return document.querySelector(s);}
@@ -712,7 +754,12 @@ function viewCatat(){
   h+='<div class="baris" style="margin:8px 0">'+
     '<select data-aksi="cjenis"><option value="0">Semua kegiatan</option>'+
     DB.jenis.map(function(j){return '<option value="'+j.id+'"'+(CATAT_JENIS===j.id?" selected":"")+
-      ">"+esc(j.nama)+"</option>";}).join("")+"</select></div>";
+      ">"+esc(j.nama)+"</option>";}).join("")+"</select>"+
+    '<button class="kecil" data-aksi="kal-lihat" data-v="'+(LIHAT==="kalender"?"daftar":"kalender")+'">'+
+      (LIHAT==="kalender"?"Daftar":"Kalender")+"</button></div>";
+  /* Filter jenis di atas berlaku untuk dua-duanya, jadi tidak perlu dibikin
+     ulang di dalam kalender. */
+  if(LIHAT==="kalender") return h+viewKalender();
   var semua=DB.kegiatan.filter(function(k){return !CATAT_JENIS||k.jenis_id===CATAT_JENIS;});
   if(!semua.length) return h+'<div class="kosong">'+
     (DB.kegiatan.length?"Tidak ada catatan untuk filter ini.":"Belum ada catatan.<br>Mulai dari tombol di atas.")+"</div>";
@@ -753,6 +800,149 @@ function viewCatat(){
   if(PIN) h+='<div class="aksi"><button data-aksi="wa-rekap">Salin rekap ke WA</button>'+
              '<button data-aksi="csv">Export CSV</button></div>';
   return h;}
+
+/* ================= KALENDER =================
+   Nol input baru: cuma cara lain melihat data yang sudah ada. Yang
+   dijawab kalender dan TIDAK bisa dijawab daftar: tanggal KOSONG dan
+   TUMPUKAN. Karena itu isi selnya jumlah ORANG yang keluar hari itu,
+   bukan titik "ada kegiatan" -- pertanyaan sebenarnya adalah berapa
+   banyak orang yang keluar sekaligus. */
+
+/* Satu kegiatan n hari menandai n tanggal. Kuncinya "YYYY-MM-DD".
+   Catatan tanpa tanggal tidak pernah muncul -- memang tidak punya tempat
+   di grid; hitungannya dipajang sebagai tombol di atas kalender. */
+function petaTanggal(daftar){
+  var pp={};
+  DB.penugasan.forEach(function(p){
+    (pp[p.kegiatan_id]=pp[p.kegiatan_id]||[]).push(p.anggota_id);});
+  var peta={};
+  (daftar||[]).forEach(function(k){
+    if(!k.tanggal) return;
+    var n=Math.max(1,num(k.jumlah_hari,1)), ids=pp[k.id]||[];
+    for(var i=0;i<n;i++){
+      var t=geser(k.tanggal,i);
+      if(!peta[t]) peta[t]={n:0,ids:[],set:{},orang:0};
+      peta[t].n++; peta[t].ids.push(k.id);
+      for(var j=0;j<ids.length;j++) peta[t].set[ids[j]]=true;}});
+  Object.keys(peta).forEach(function(t){
+    peta[t].orang=Object.keys(peta[t].set).length;});
+  return peta;}
+
+/* Lebar batang dalam persen, relatif terhadap jumlah anggota AKTIF --
+   batang penuh = satu tim keluar semua. Dibuat relatif, bukan ambang tetap,
+   supaya jawabannya tetap "seberapa kosong kantor" walau jumlah tim berubah.
+
+   Lantai 14%: satu orang dari 13 itu 7,7%, lebarnya tinggal 4px dan praktis
+   tak terlihat. Hari yang ADA isinya tidak boleh pernah terbaca kosong --
+   kesalahan yang sama dengan garis rata-rata yang dulu ketelen batang. */
+function kalBar(orang,total){
+  if(!orang) return 0;
+  if(!total) return 100;
+  return Math.min(100,Math.max(14,Math.round(orang/total*100)));}
+
+function kalDaftar(){
+  return DB.kegiatan.filter(function(k){return !CATAT_JENIS||k.jenis_id===CATAT_JENIS;});}
+
+/* Bulan yang dibuka pertama: bulan ini kalau ada isinya, kalau kosong
+   jatuh ke bulan terakhir yang ada catatannya -- biar tidak membuka
+   grid kosong melompong waktu backfill-nya ketinggalan. */
+function kalBulanAwal(){
+  var kini=hariIni().slice(0,7), ada={};
+  kalDaftar().forEach(function(k){if(k.tanggal) ada[k.tanggal.slice(0,7)]=true;});
+  if(ada[kini]) return kini;
+  var urut=Object.keys(ada).sort();
+  return urut.length?urut[urut.length-1]:kini;}
+
+function kalGeserBulan(bln,n){
+  var p=bln.split("-"), y=parseInt(p[0],10), m=parseInt(p[1],10)-1+n;
+  y+=Math.floor(m/12); m=((m%12)+12)%12;
+  return y+"-"+(m+1<10?"0":"")+(m+1);}
+
+function viewKalender(){
+  if(!KAL_BLN) KAL_BLN=kalBulanAwal();
+  var bln=KAL_BLN, p=bln.split("-");
+  var thn=parseInt(p[0],10), mon=parseInt(p[1],10);
+  var semua=kalDaftar();
+  var peta=petaTanggal(semua);
+  var aktif=DB.anggota.filter(function(a){return a.aktif;}).length;
+  var tanpa=semua.filter(function(k){return !k.tanggal;}).length;
+  var kini=hariIni();
+
+  var h='<div class="kalbar">'+
+    '<button class="kecil" data-aksi="kal-bln" data-v="-1" aria-label="Bulan sebelumnya">&lt;</button>'+
+    '<span class="kalnm">'+BLN[mon]+" "+thn+"</span>"+
+    '<button class="kecil" data-aksi="kal-bln" data-v="+1" aria-label="Bulan berikutnya">&gt;</button>'+
+    '<button class="kecil" data-aksi="kal-bln" data-v="kini">Kini</button></div>';
+
+  h+='<div class="kdow">'+DOW3.map(function(d,i){
+    return '<span'+(i===0?' class="ming"':"")+">"+d+"</span>";}).join("")+"</div>";
+
+  /* Pakai UTC supaya tidak bergeser sehari di zona waktu mana pun. */
+  var awal=new Date(Date.UTC(thn,mon-1,1)).getUTCDay();
+  var jml=new Date(Date.UTC(thn,mon,0)).getUTCDate();
+  var sel=[], i;
+  for(i=0;i<awal;i++) sel.push('<span class="kcell nihil"></span>');
+  for(i=1;i<=jml;i++){
+    var tgl=thn+"-"+(mon<10?"0":"")+mon+"-"+(i<10?"0":"")+i;
+    var d=peta[tgl], org=d?d.orang:0, w=kalBar(org,aktif);
+    var judul=d?(d.n+" kegiatan, "+org+" orang keluar"):"belum ada catatan";
+    sel.push('<button class="kcell'+(tgl===kini?" kini":"")+'"'+
+      ' data-aksi="kal-tgl" data-v="'+tgl+'" title="'+esc(judul)+'">'+
+      "<i>"+i+"</i><u>"+(w?'<b style="width:'+w+'%"></b>':"")+"</u></button>");}
+  h+='<div class="kgrid">'+sel.join("")+"</div>";
+
+  h+='<div class="kleg"><span>Batang = orang keluar.</span>'+
+    '<u><b style="width:25%"></b></u><span>sedikit</span>'+
+    '<u><b style="width:100%"></b></u><span>'+(aktif||"?")+" orang (satu tim)</span></div>";
+
+  if(tanpa) h+='<div class="aksi" style="margin-top:8px">'+
+    '<button data-aksi="kal-tanpa"><b>'+tanpa+"</b> belum bertanggal — isi tanggalnya</button></div>";
+  if(PIN) h+='<div class="meta" style="margin-top:6px">Ketuk tanggal kosong untuk mencatat di hari itu.</div>';
+  return h;}
+
+/* Ketuk satu tanggal: kalau ada isinya tampilkan daftarnya, kalau kosong
+   dan sedang admin buka form dengan tanggalnya sudah keisi. */
+function kalBukaHari(tgl){
+  var peta=petaTanggal(kalDaftar()), d=peta[tgl];
+  var p=tgl.split("-");
+  var nm=HARI[new Date(Date.UTC(+p[0],+p[1]-1,+p[2])).getUTCDay()]+", "+
+         parseInt(p[2],10)+" "+BLN[parseInt(p[1],10)]+" "+p[0];
+  if(!d){
+    if(!PIN){bukaModal(nm,'<div class="kosong">Belum ada catatan di tanggal ini.</div>');return;}
+    bukaForm(null,tgl); return;}
+  var kg={}; DB.kegiatan.forEach(function(k){kg[k.id]=k;});
+  var isi=d.ids.map(function(id){
+    var k=kg[id]; if(!k) return "";
+    var hari=Math.max(1,num(k.jumlah_hari,1));
+    return '<div class="in kart" data-aksi="detail" data-v="'+k.id+'">'+
+      '<div class="jud">'+esc(namaKeg(k))+"</div>"+
+      '<div class="meta">'+uangRingkas(k)+
+        (hari>1?" · "+hari+" hari, mulai "+tglTeks(k,true):"")+
+        (k.lokasi?" · "+esc(k.lokasi):"")+"</div>"+
+      '<div class="meta">'+namaRingkas(k)+"</div></div>";}).join("");
+  var aktif=DB.anggota.filter(function(a){return a.aktif;}).length;
+  bukaModal(nm,
+    '<div class="khari"><b>'+d.orang+"</b> dari "+(aktif||"?")+" orang keluar · <b>"+
+      d.n+"</b> kegiatan</div>"+isi+
+    (PIN?'<div class="aksi"><button data-aksi="kal-baru" data-v="'+tgl+
+         '">+ Catat lagi di tanggal ini</button></div>':""));
+  pasangFoto();}
+
+/* Daftar yang belum bertanggal. Tombol Ubah membuka form yang sudah ada --
+   tidak ada jalur tulis baru, jadi tidak ada risiko salah ketuk menimpa
+   data. */
+function kalTanpaTanggal(){
+  var t=kalDaftar().filter(function(k){return !k.tanggal;});
+  if(!t.length){bukaModal("Belum bertanggal",'<div class="kosong">Semua catatan sudah bertanggal.</div>');return;}
+  bukaModal("Belum bertanggal ("+t.length+")",
+    '<p class="meta">Yang belum bertanggal tidak ikut rekap per tahun dan tidak muncul di kalender. '+
+    "Isi tanggalnya lewat tombol Ubah.</p>"+
+    t.map(function(k){
+      return '<div class="in kart"><div class="jud">'+esc(namaKeg(k))+"</div>"+
+        '<div class="meta">'+uangRingkas(k)+(k.lokasi?" · "+esc(k.lokasi):"")+"</div>"+
+        '<div class="meta">'+namaRingkas(k)+"</div>"+
+        (PIN?'<div class="aksi"><button class="kecil" data-aksi="edit-keg" data-v="'+k.id+
+             '">Ubah</button></div>':"")+"</div>";}).join(""));}
 
 function caraHitung(){
   var fk=cfg("faktor_ketua",1.2);
@@ -1009,7 +1199,7 @@ function opsiTujuan(kota,prov){
       esc(x.provinsi)+(num(x.transport_luar,0)||num(x.taksi,0)?"":" (transport belum diisi)")+
       "</option>";}).join("")+"</optgroup>";
   return h;}
-function bukaForm(k){
+function bukaForm(k,tglAwal){
   if(!DB.jenis.length){
     bukaModal("Belum ada daftar kegiatan",
       '<p>Isi dulu daftar kegiatan di tab Admin, baru bisa mencatat.</p>'+
@@ -1020,7 +1210,7 @@ function bukaForm(k){
       tingkat_beban:num(k.tingkat_beban,2),ketua_id:k.ketua_id,catatan:k.catatan,
       provinsi:k.provinsi||"",kota:k.kota||"",hari_meeting:num(k.hari_meeting,0),
       orang:{},ubahBobot:false}
-    :{id:null,jenis_id:null,judul:"",tanggal:"",jumlah_hari:1,lokasi:"",
+    :{id:null,jenis_id:null,judul:"",tanggal:tglAwal||"",jumlah_hari:1,lokasi:"",
       tier:"dalam_kota",tingkat_beban:2,ketua_id:null,catatan:"",
       provinsi:"",kota:"",hari_meeting:0,orang:{},ubahBobot:false};
   if(k) DB.penugasan.forEach(function(p){if(p.kegiatan_id===k.id) FORM.orang[p.anggota_id]=true;});
@@ -1286,6 +1476,18 @@ document.addEventListener("click",function(ev){
   if(a==="urut"){URUT=v;render();return;}
   if(a==="cara-hitung"){bukaModal("Cara hitung skor",caraHitung());return;}
   if(a==="baru"){bukaForm(null);return;}
+  /* JANGAN pakai "lihat" di sini: aksi itu sudah dipakai buka layar orang
+     dan dicek lebih dulu, jadi toggle-nya tidak akan pernah jalan. */
+  if(a==="kal-lihat"&&(v==="daftar"||v==="kalender")){
+    LIHAT=v; try{localStorage.setItem("keg_lihat",v);}catch(e){}
+    render(); return;}
+  if(a==="kal-bln"){
+    if(!KAL_BLN) KAL_BLN=kalBulanAwal();
+    KAL_BLN = v==="kini" ? hariIni().slice(0,7) : kalGeserBulan(KAL_BLN,v==="+1"?1:-1);
+    render(); return;}
+  if(a==="kal-tgl"){kalBukaHari(v);return;}
+  if(a==="kal-baru"){bukaForm(null,v);return;}
+  if(a==="kal-tanpa"){kalTanpaTanggal();return;}
   if(a==="edit-keg"){var k=cari(DB.kegiatan,parseInt(v,10)); if(k) bukaForm(k); return;}
   if(a==="set-tier"){bacaForm();FORM.tier=v;FORM.ubahBobot=true;gambarLapis(true);return;}
   if(a==="set-beban"){bacaForm();FORM.tingkat_beban=parseInt(v,10);FORM.ubahBobot=true;gambarLapis(true);return;}
