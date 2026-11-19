@@ -814,20 +814,19 @@ function viewCatat(){
 /* Satu kegiatan n hari menandai n tanggal. Kuncinya "YYYY-MM-DD".
    Catatan tanpa tanggal tidak pernah muncul -- memang tidak punya tempat
    di grid; hitungannya dipajang sebagai tombol di atas kalender. */
-/* Yang dihitung CUMA tim inti. App ini monitor pemerataan tim inti;
-   Anak TU sudah dipisah di tab Tim, layar detail, dan rata-rata pembanding
-   -- kalender dulu satu-satunya tempat yang mencampur keduanya, jadi
+/* Tim inti dan Anak TU DIPISAH, bukan salah satunya dibuang.
+   Batang cuma mengikuti tim inti -- app ini monitor pemerataan tim inti,
+   dan seluruh app memang sudah memisahkan keduanya (tab Tim, layar
+   detail, rataLain). Dulu kalender satu-satunya yang mencampur, jadi
    batangnya tidak pernah bisa penuh walau seluruh tim inti jalan.
-   TU tidak disembunyikan: namanya tetap muncul di daftar kegiatan dalam
-   modal, cuma tidak ikut mengisi batang. */
+   TU tetap DIHITUNG dan ditulis terpisah: "6 orang + 2 TU". */
 function intiAktif(){
   return DB.anggota.filter(function(a){return a.aktif&&a.kategori!=="tu";}).length;}
 function petaTanggal(daftar){
-  var inti={};
-  DB.anggota.forEach(function(a){if(a.kategori!=="tu") inti[a.id]=true;});
+  var tuId={};
+  DB.anggota.forEach(function(a){if(a.kategori==="tu") tuId[a.id]=true;});
   var pp={};
   DB.penugasan.forEach(function(p){
-    if(!inti[p.anggota_id]) return;
     (pp[p.kegiatan_id]=pp[p.kegiatan_id]||[]).push(p.anggota_id);});
   var peta={};
   (daftar||[]).forEach(function(k){
@@ -835,12 +834,19 @@ function petaTanggal(daftar){
     var n=Math.max(1,num(k.jumlah_hari,1)), ids=pp[k.id]||[];
     for(var i=0;i<n;i++){
       var t=geser(k.tanggal,i);
-      if(!peta[t]) peta[t]={n:0,ids:[],set:{},orang:0};
+      if(!peta[t]) peta[t]={n:0,ids:[],set:{},setTU:{},orang:0,tu:0};
       peta[t].n++; peta[t].ids.push(k.id);
-      for(var j=0;j<ids.length;j++) peta[t].set[ids[j]]=true;}});
+      for(var j=0;j<ids.length;j++)
+        (tuId[ids[j]]?peta[t].setTU:peta[t].set)[ids[j]]=true;}});
   Object.keys(peta).forEach(function(t){
-    peta[t].orang=Object.keys(peta[t].set).length;});
+    peta[t].orang=Object.keys(peta[t].set).length;
+    peta[t].tu=Object.keys(peta[t].setTU).length;});
   return peta;}
+
+/* "6 orang + 2 TU", atau "6 orang" kalau TU-nya tidak ikut. */
+function teksOrang(d,tebal){
+  var a=tebal?"<b>":"", z=tebal?"</b>":"";
+  return a+d.orang+z+" orang"+(d.tu?" + "+a+d.tu+z+" TU":"");}
 
 /* Lebar batang dalam persen, relatif terhadap jumlah anggota AKTIF --
    batang penuh = satu tim keluar semua. Dibuat relatif, bukan ambang tetap,
@@ -912,15 +918,14 @@ function viewKalender(){
     var d=peta[tgl], org=d?d.orang:0, w=kalBar(org,aktif);
     var sg=kalSegmen(d?d.n:0), pot="";
     for(var q=0;q<sg;q++) pot+="<b></b>";
-    var judul=d?(d.n+" kegiatan, "+org+" orang DL"+
-      (d.n&&!org?" (tim inti tidak ikut)":"")):"belum ada catatan";
+    var judul=d?(d.n+" kegiatan, "+teksOrang(d)):"belum ada catatan";
     sel.push('<button class="kcell'+(tgl===kini?" kini":"")+'"'+
       ' data-aksi="kal-tgl" data-v="'+tgl+'" title="'+esc(judul)+'">'+
       "<i>"+i+"</i><u"+(d&&!w?' class="adaTU"':"")+">"+
       (w?'<s style="width:'+w+'%">'+pot+"</s>":"")+"</u></button>");}
   h+='<div class="kgrid">'+sel.join("")+"</div>";
 
-  h+='<div class="kleg"><span>Panjang = orang DL:</span>'+
+  h+='<div class="kleg"><span>Panjang = berapa orang:</span>'+
     '<u><b style="width:25%"></b></u><span>sedikit</span>'+
     '<u><b style="width:100%"></b></u><span>'+(aktif||"?")+" orang tim inti.</span>"+
     '<span>Potongan = jumlah kegiatan:</span>'+
@@ -952,7 +957,7 @@ function kalBukaHari(tgl){
         (k.lokasi?" · "+esc(k.lokasi):"")+"</div>"+
       '<div class="meta">'+namaRingkas(k)+"</div></div>";}).join("");
   bukaModal(nm,
-    '<div class="khari"><b>'+d.orang+"</b> orang DL · <b>"+
+    '<div class="khari">'+teksOrang(d,true)+" · <b>"+
       d.n+"</b> kegiatan</div>"+isi+
     (PIN?'<div class="aksi"><button data-aksi="kal-baru" data-v="'+tgl+
          '">+ Catat lagi di tanggal ini</button></div>':""));

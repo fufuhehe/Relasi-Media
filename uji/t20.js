@@ -19,7 +19,7 @@ global.localStorage={getItem:()=>null,setItem(){},removeItem(){}};
 global.sessionStorage={getItem:()=>null,setItem(){},removeItem(){}};
 global.navigator={}; global.window={matchMedia:()=>({matches:false})};
 src=src.replace(/\(function\(\)\{\n  try\{[\s\S]*$/,'');
-src+="\nmodule.exports={petaTanggal,kalBar,kalSegmen,intiAktif,kalGeserBulan,kalBulanAwal,kalDaftar,"
+src+="\nmodule.exports={petaTanggal,kalBar,kalSegmen,intiAktif,teksOrang,kalGeserBulan,kalBulanAwal,kalDaftar,"
  +"viewKalender,viewCatat,DB,setJenis:v=>{CATAT_JENIS=v},setLihat:v=>{LIHAT=v},"
  +"setBln:v=>{KAL_BLN=v},getBln:()=>KAL_BLN,setPin:p=>{PIN=p}};\n";
 fs.writeFileSync('m20_'+FILE,src);
@@ -108,6 +108,8 @@ DB.penugasan=[{kegiatan_id:70,anggota_id:1},{kegiatan_id:70,anggota_id:3},
               {kegiatan_id:70,anggota_id:4}];
 pt=M.petaTanggal(DB.kegiatan);
 cek('3 orang jalan tapi cuma 1 tim inti', pt['2026-11-02'].orang, 1);
+cek('TU-nya TIDAK dibuang, dihitung terpisah', pt['2026-11-02'].tu, 2);
+cek('ditulis terpisah', M.teksOrang(pt['2026-11-02']), '1 orang + 2 TU');
 cek('kegiatannya tetap kehitung', pt['2026-11-02'].n, 1);
 DB.penugasan=[{kegiatan_id:70,anggota_id:1},{kegiatan_id:70,anggota_id:2}];
 pt=M.petaTanggal(DB.kegiatan);
@@ -115,8 +117,14 @@ cek('seluruh tim inti jalan -> batang penuh',
   M.kalBar(pt['2026-11-02'].orang,M.intiAktif()), 100);
 DB.penugasan=[{kegiatan_id:70,anggota_id:3},{kegiatan_id:70,anggota_id:4}];
 pt=M.petaTanggal(DB.kegiatan);
-cek('cuma TU yang jalan -> nol orang', pt['2026-11-02'].orang, 0);
+cek('cuma TU yang jalan -> nol tim inti', pt['2026-11-02'].orang, 0);
+cek('TU-nya tetap kelihatan', M.teksOrang(pt['2026-11-02']), '0 orang + 2 TU');
 cek('tapi kegiatannya tetap tercatat', pt['2026-11-02'].n, 1);
+DB.penugasan=[{kegiatan_id:70,anggota_id:1},{kegiatan_id:70,anggota_id:2}];
+pt=M.petaTanggal(DB.kegiatan);
+cek('tanpa TU, tidak ada embel-embel', M.teksOrang(pt['2026-11-02']), '2 orang');
+cek('versi tebal buat modal', M.teksOrang(pt['2026-11-02'],true), '<b>2</b> orang');
+cek('istilah DL sudah dibuang', M.teksOrang(pt['2026-11-02']).indexOf('DL')>=0, false);
 
 console.log('--- kalSegmen: potongan = jumlah kegiatan ---');
 cek('tidak ada kegiatan -> tidak ada potongan', M.kalSegmen(0), 0);
@@ -209,8 +217,9 @@ function sel(tgl){
 cek('hari TU-saja ditandai adaTU', sel('2026-11-20').indexOf('adaTU')>=0, true);
 cek('hari benar-benar kosong tidak ditandai', sel('2026-11-04').indexOf('adaTU')>=0, false);
 cek('hari TU-saja memang tanpa batang', sel('2026-11-20').indexOf('<s ')>=0, false);
-cek('judulnya bilang tim inti tidak ikut',
-  h2.indexOf('5 kegiatan, 0 orang DL')>=0||h2.indexOf('(tim inti tidak ikut)')>=0, true);
+cek('judul sel hari TU-saja menulis TU-nya',
+  sel('2026-11-20').indexOf('0 orang + 1 TU')>=0, true);
+cek('tidak ada lagi istilah DL di grid', h2.indexOf(' DL')>=0, false);
 /* Panjang total tetap ikut ORANG, bukan jumlah kegiatan: 5 Nov dan 9 Nov
    sama-sama cuma 1 orang yang keluar, jadi panjangnya harus sama. */
 function lebar(tgl){

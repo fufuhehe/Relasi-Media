@@ -541,11 +541,12 @@ Kalau suatu saat mau menambah sesuatu ke kalender, ukur dengan dua itu.
   ORANG keluar. Versi pertama menaruh jumlah orang sebagai angka kedua di dalam
   sel; Ibot langsung bilang terbaca seperti dua tanggal. Jangan taruh angka
   kedua di sel.
-- **Istilahnya "DL"**, bukan "orang keluar" — itu kata yang dipakai Ibot
-  dan timnya untuk dinas luar. Dipakai di tooltip sel, legenda, dan modal
-  hari. Modal cuma menulis **"12 orang DL"**, tanpa penyebut: versi pertama
-  berbunyi "12 dari 21 orang keluar" dan penyebutnya tidak dia perlukan.
-  Skala penuh batang tetap dijelaskan di legenda.
+- **Tulisannya "6 orang + 2 TU"** lewat `teksOrang(d,tebal)`, tanpa
+  penyebut dan tanpa embel-embel "DL". Riwayat perubahannya: mula-mula
+  "12 dari 21 orang keluar" (penyebutnya tidak diperlukan), lalu
+  "12 orang DL", lalu DL ikut dibuang. Tim inti dan Anak TU **dipisah,
+  bukan salah satunya dibuang** — kalau TU-nya nol, embel-embel "+ N TU"
+  tidak ditulis sama sekali. Skala penuh batang dijelaskan di legenda.
 - **Latar sel TIDAK diwarnai.** Ramp kepadatan empat tingkat sempat dibuat lalu
   dibuang: panjang terbaca sebagai *jumlah*, warna cuma terbaca sebagai
   *urutan* — dari warna orang tidak bisa bilang "ini 7 orang". Batang juga sudah
@@ -566,20 +567,22 @@ Kalau suatu saat mau menambah sesuatu ke kalender, ukur dengan dua itu.
 - **Jalur batang transparan**, cuma digariskan tipis dan diredupkan. Versi
   pertama jalurnya putih pekat, jadi 24 hari kosong dalam sebulan malah lebih
   menarik mata daripada hari yang berisi.
-- **Yang dihitung cuma TIM INTI** (`intiAktif()`, `kategori !== 'tu'`), bukan
-  semua anggota. App ini monitor pemerataan tim inti, dan seluruh app memang
-  sudah memisahkan keduanya — tab Tim, layar detail, `rataLain()`. Kalender
-  sempat jadi satu-satunya tempat yang mencampur, akibatnya batangnya tidak
-  pernah bisa penuh walau SELURUH tim inti jalan. Anak TU tidak disembunyikan:
-  namanya tetap muncul di daftar kegiatan dalam modal, cuma tidak mengisi
-  batang. Lebarnya relatif, bukan ambang tetap — penuh = seluruh tim inti
-  jalan, jadi jawabannya tetap "seberapa kosong kantor" walau jumlah tim
-  berubah.
+- **BATANG-nya cuma mengikuti TIM INTI** (`intiAktif()`, `kategori !== 'tu'`).
+  App ini monitor pemerataan tim inti, dan seluruh app memang sudah memisahkan
+  keduanya — tab Tim, layar detail, `rataLain()`. Kalender sempat jadi
+  satu-satunya tempat yang mencampur, akibatnya batangnya tidak pernah bisa
+  penuh walau SELURUH tim inti jalan. Lebarnya relatif, bukan ambang tetap —
+  penuh = seluruh tim inti jalan.
+  **Anak TU tetap DIHITUNG**, cuma tidak mengisi batang: `petaTanggal`
+  mengembalikan `orang` (tim inti) dan `tu` terpisah, dan keduanya ditulis
+  di tooltip serta modal. Percobaan pertama membuang TU dari hitungan —
+  Ibot menolak: "jangan dihilangkan, pisahin aja".
 - Hari yang ada kegiatan tapi **tim intinya nol** (cuma TU yang jalan) tidak
   punya batang. Supaya tidak terbaca sama persis dengan hari yang benar-benar
-  kosong, jalurnya diberi class `adaTU` yang membatalkan peredupan, dan
-  `title`-nya menulis "(tim inti tidak ikut)". Sengaja setipis itu — menambah
-  simbol baru akan melanggar aturan satu sandi per sel.
+  kosong, jalurnya diberi class `adaTU` yang membatalkan peredupan; `title`-nya
+  sudah berbunyi "0 orang + 2 TU" jadi tidak perlu keterangan tambahan.
+  Sengaja setipis itu — menambah simbol baru akan melanggar aturan satu sandi
+  per sel.
 - Bulan pembuka: bulan ini kalau ada isinya, kalau kosong jatuh ke bulan
   terakhir yang ada catatannya (`kalBulanAwal`), biar tidak membuka grid kosong
   melompong waktu backfill ketinggalan.
