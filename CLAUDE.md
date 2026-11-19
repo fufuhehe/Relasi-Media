@@ -524,6 +524,65 @@ tepi gelap (`background:#fff; box-shadow:0 0 0 1px`) — versi pertama dibuat ge
 jepretan. `banding()` menulis rasionya sebagai teks (`1,2× rata-rata`, `setara` untuk
 selisih di bawah 5%, `sendirian` kalau tidak ada pembanding). Tes: `t18.js`.
 
+### Kalender — satu sandi per sel
+Ditambah 19 Nov 2026. Toggle **Daftar / Kalender** di tab Kegiatan (bukan tab
+keempat: datanya sama, cuma cara lihat beda, dan tab bar 4 item mulai sempit di
+390px). Pilihannya di `localStorage.keg_lihat`, per perangkat. Filter jenis yang
+sudah ada berlaku untuk dua-duanya lewat `kalDaftar()`, jangan dibikin ulang.
+
+**Kenapa ini lolos padahal daftar panjang fitur ditolak:** kalender **nol input
+baru** — cuma cara lain melihat data yang sudah ada. Patokan "kalau di kertas
+tidak ditulis, jangan jadi field" tidak kena. Yang dijawab kalender dan TIDAK
+bisa dijawab daftar per bulan cuma dua: **tanggal kosong** dan **tumpukan**.
+Kalau suatu saat mau menambah sesuatu ke kalender, ukur dengan dua itu.
+
+**Aturan tampilan yang jangan dibalik:**
+- **Satu sandi per sel.** Angka = TANGGAL. Panjang batang di dasar sel = berapa
+  ORANG keluar. Versi pertama menaruh jumlah orang sebagai angka kedua di dalam
+  sel; Ibot langsung bilang terbaca seperti dua tanggal. Jangan taruh angka
+  kedua di sel.
+- **Latar sel TIDAK diwarnai.** Ramp kepadatan empat tingkat sempat dibuat lalu
+  dibuang: panjang terbaca sebagai *jumlah*, warna cuma terbaca sebagai
+  *urutan* — dari warna orang tidak bisa bilang "ini 7 orang". Batang juga sudah
+  jadi bahasa visual app ini di tab Tim dan rekap per jenis.
+- **`kalBar()` punya lantai 14%.** Satu orang dari 13 itu 7,7%, lebarnya tinggal
+  4px dan praktis tak terlihat — hari yang ADA isinya tidak boleh pernah terbaca
+  kosong (cacat yang sama dengan garis rata-rata yang dulu ketelen batang).
+  Konsekuensi yang diterima: 1 dan 2 orang tampak sama. Angka persisnya ada di
+  atribut `title` dan di modal.
+- **Jalur batang transparan**, cuma digariskan tipis dan diredupkan. Versi
+  pertama jalurnya putih pekat, jadi 24 hari kosong dalam sebulan malah lebih
+  menarik mata daripada hari yang berisi.
+- Lebarnya relatif **anggota aktif**, bukan ambang tetap — penuh = satu tim
+  keluar semua, jadi jawabannya tetap "seberapa kosong kantor" walau jumlah tim
+  berubah.
+- Bulan pembuka: bulan ini kalau ada isinya, kalau kosong jatuh ke bulan
+  terakhir yang ada catatannya (`kalBulanAwal`), biar tidak membuka grid kosong
+  melompong waktu backfill ketinggalan.
+- Tanggal dibangun dengan **`Date.UTC`**, jangan `new Date(y,m,d)` lokal —
+  nanti bergeser sehari di sebagian zona waktu.
+
+**Jebakan nama aksi:** `data-aksi="lihat"` SUDAH dipakai untuk membuka layar
+orang dan dicek lebih dulu di dispatcher. Toggle kalender memakai
+**`kal-lihat`**; kalau dinamai `lihat` ia tidak akan pernah jalan dan malah
+memanggil `detailOrang(NaN)`. Ada tes yang menjaga nama itu.
+
+**Yang sengaja TIDAK dibuat, jangan diusulkan lagi:** tampilan minggu/hari (di
+390px tidak menambah apa pun), drag-drop pindah tanggal (gampang kesenggol di HP
+dan itu mengubah data tanpa konfirmasi), satu baris per orang (butuh lebar
+desktop), menampilkan bentrok di grid (`bentrokPada()` sudah muncul di form saat
+mencentang nama, di tempat yang benar; 12 orang sekaligus di grid bulanan jadi
+bubur), dan sinkron Google Calendar (itu backlog `.ics`, urusan beda).
+
+Mengisi tanggal untuk catatan yang kosong lewat tombol di bawah grid → modal →
+tombol **Ubah** → form yang sudah ada. Rencana awal "pilih lalu ketuk tanggal"
+dibatalkan: itu bikin mode baru yang nyangkut di HP dan jalur tulis baru yang
+bisa menimpa data karena salah ketuk.
+
+Tes: `t20.js` (multi-hari kena semua harinya, lintas bulan, lintas tahun,
+29 Feb 2028, orang yang ikut dua kegiatan sehari dihitung sekali, catatan tanpa
+tanggal tidak pernah masuk grid, jumlah sel kosong di depan per bulan).
+
 ### Modal — title bar NEMPEL, aksi utama di atas
 Modal digulung sebagai satu blok (`.tutup` yang menggulung di Jadul, `.modal` sendiri di
 Modern), jadi apa pun yang ditaruh di dasar body akan **ketinggalan** begitu isinya panjang —
