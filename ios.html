@@ -1003,13 +1003,13 @@ function viewKalender(){
     var d=peta[tgl], org=d?d.orang:0, w=kalBar(org,aktif);
     var sg=kalSegmen(d?d.n:0), pot="";
     for(var q=0;q<sg;q++) pot+="<b></b>";
-    var judul=d?(d.n+" kegiatan, "+org+" orang keluar"):"belum ada catatan";
+    var judul=d?(d.n+" kegiatan, "+org+" orang DL"):"belum ada catatan";
     sel.push('<button class="kcell'+(tgl===kini?" kini":"")+'"'+
       ' data-aksi="kal-tgl" data-v="'+tgl+'" title="'+esc(judul)+'">'+
       "<i>"+i+"</i><u>"+(w?'<s style="width:'+w+'%">'+pot+"</s>":"")+"</u></button>");}
   h+='<div class="kgrid">'+sel.join("")+"</div>";
 
-  h+='<div class="kleg"><span>Panjang = orang keluar:</span>'+
+  h+='<div class="kleg"><span>Panjang = orang DL:</span>'+
     '<u><b style="width:25%"></b></u><span>sedikit</span>'+
     '<u><b style="width:100%"></b></u><span>'+(aktif||"?")+" orang.</span>"+
     '<span>Potongan = jumlah kegiatan:</span>'+
@@ -1039,9 +1039,8 @@ function kalBukaHari(tgl){
         (k.lokasi?" · "+esc(k.lokasi):"")+"</div>"+
       '<div class="sb nm">'+namaRingkas(k)+"</div>"+
       '</div><span class="chev"></span></div>';}).join("");
-  var aktif=DB.anggota.filter(function(a){return a.aktif;}).length;
   bukaModal(nm,
-    '<div class="khari"><b>'+d.orang+"</b> dari "+(aktif||"?")+" orang keluar · <b>"+
+    '<div class="khari"><b>'+d.orang+"</b> orang DL · <b>"+
       d.n+"</b> kegiatan</div><div class=\"list\">"+isi+"</div>"+
     (PIN?'<div class="aksi" style="margin-top:16px"><button data-aksi="kal-baru" data-v="'+tgl+
          '">+ Catat lagi di tanggal ini</button></div>':""));

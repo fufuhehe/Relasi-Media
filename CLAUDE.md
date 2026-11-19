@@ -541,6 +541,11 @@ Kalau suatu saat mau menambah sesuatu ke kalender, ukur dengan dua itu.
   ORANG keluar. Versi pertama menaruh jumlah orang sebagai angka kedua di dalam
   sel; Ibot langsung bilang terbaca seperti dua tanggal. Jangan taruh angka
   kedua di sel.
+- **Istilahnya "DL"**, bukan "orang keluar" — itu kata yang dipakai Ibot
+  dan timnya untuk dinas luar. Dipakai di tooltip sel, legenda, dan modal
+  hari. Modal cuma menulis **"12 orang DL"**, tanpa penyebut: versi pertama
+  berbunyi "12 dari 21 orang keluar" dan penyebutnya tidak dia perlukan.
+  Skala penuh batang tetap dijelaskan di legenda.
 - **Latar sel TIDAK diwarnai.** Ramp kepadatan empat tingkat sempat dibuat lalu
   dibuang: panjang terbaca sebagai *jumlah*, warna cuma terbaca sebagai
   *urutan* — dari warna orang tidak bisa bilang "ini 7 orang". Batang juga sudah
