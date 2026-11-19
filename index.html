@@ -172,8 +172,9 @@ details[open]>summary:before{content:"\25BE ";}
    menarik mata daripada hari yang ada isinya. */
 .kcell u{display:block;width:100%;height:7px;margin-top:auto;text-decoration:none;
   background:transparent;box-shadow:inset 0 0 0 1px var(--shadow);opacity:.55}
-.kcell u:has(b){opacity:1}
-.kcell u b{display:block;height:100%;background:var(--kbar)}
+.kcell u:has(s){opacity:1}
+.kcell u s{display:flex;gap:1px;height:100%;text-decoration:none}
+.kcell u s b{flex:1;height:100%;background:var(--kbar)}
 .kcell.nihil{box-shadow:none;background:transparent;cursor:default}
 .kcell.kini{outline:2px solid var(--alert);outline-offset:-2px}
 .kcell:focus-visible{outline:2px solid var(--bar2);outline-offset:-2px}
@@ -182,6 +183,8 @@ details[open]>summary:before{content:"\25BE ";}
 .kleg u{text-decoration:none;width:34px;height:7px;display:inline-block;
   background:transparent;box-shadow:inset 0 0 0 1px var(--shadow)}
 .kleg u b{display:block;height:100%;background:var(--kbar)}
+.kleg u s{display:flex;gap:1px;height:100%;text-decoration:none}
+.kleg u s b{flex:1}
 .khari{padding:3px 0}
 </style>
 </head>
@@ -840,6 +843,17 @@ function kalBar(orang,total){
   if(!total) return 100;
   return Math.min(100,Math.max(14,Math.round(orang/total*100)));}
 
+/* Berapa potong batangnya dipenggal = berapa KEGIATAN hari itu. Panjang
+   total tetap jumlah orang, jadi tidak ada sandi baru di sel -- cuma
+   batang yang sama, dipotong. Dua kegiatan 5 orang jadi kelihatan beda
+   dari satu kegiatan 5 orang.
+
+   Dibatasi 4 potong: di lebar 48px, potongan kelima sudah tinggal 1px dan
+   jadi bubur. Jumlah persisnya tetap ada di atribut title dan di modal. */
+function kalSegmen(n){
+  if(!n) return 0;
+  return Math.min(4,n);}
+
 function kalDaftar(){
   return DB.kegiatan.filter(function(k){return !CATAT_JENIS||k.jenis_id===CATAT_JENIS;});}
 
@@ -885,15 +899,19 @@ function viewKalender(){
   for(i=1;i<=jml;i++){
     var tgl=thn+"-"+(mon<10?"0":"")+mon+"-"+(i<10?"0":"")+i;
     var d=peta[tgl], org=d?d.orang:0, w=kalBar(org,aktif);
+    var sg=kalSegmen(d?d.n:0), pot="";
+    for(var q=0;q<sg;q++) pot+="<b></b>";
     var judul=d?(d.n+" kegiatan, "+org+" orang keluar"):"belum ada catatan";
     sel.push('<button class="kcell'+(tgl===kini?" kini":"")+'"'+
       ' data-aksi="kal-tgl" data-v="'+tgl+'" title="'+esc(judul)+'">'+
-      "<i>"+i+"</i><u>"+(w?'<b style="width:'+w+'%"></b>':"")+"</u></button>");}
+      "<i>"+i+"</i><u>"+(w?'<s style="width:'+w+'%">'+pot+"</s>":"")+"</u></button>");}
   h+='<div class="kgrid">'+sel.join("")+"</div>";
 
-  h+='<div class="kleg"><span>Batang = orang keluar.</span>'+
+  h+='<div class="kleg"><span>Panjang = orang keluar:</span>'+
     '<u><b style="width:25%"></b></u><span>sedikit</span>'+
-    '<u><b style="width:100%"></b></u><span>'+(aktif||"?")+" orang (satu tim)</span></div>";
+    '<u><b style="width:100%"></b></u><span>'+(aktif||"?")+" orang.</span>"+
+    '<span>Potongan = jumlah kegiatan:</span>'+
+    '<u><s style="width:100%"><b></b><b></b><b></b></s></u><span>3 kegiatan</span></div>';
 
   if(tanpa) h+='<div class="aksi" style="margin-top:8px">'+
     '<button data-aksi="kal-tanpa"><b>'+tanpa+"</b> belum bertanggal — isi tanggalnya</button></div>";

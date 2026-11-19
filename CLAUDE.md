@@ -550,6 +550,14 @@ Kalau suatu saat mau menambah sesuatu ke kalender, ukur dengan dua itu.
   kosong (cacat yang sama dengan garis rata-rata yang dulu ketelen batang).
   Konsekuensi yang diterima: 1 dan 2 orang tampak sama. Angka persisnya ada di
   atribut `title` dan di modal.
+- **Batang DIPENGGAL sebanyak jumlah kegiatan hari itu** (`kalSegmen`),
+  panjang totalnya tetap ikut jumlah orang. Jadi 2 kegiatan x 5 orang
+  kelihatan beda dari 1 kegiatan x 5 orang tanpa menambah sandi baru di sel
+  — batang yang sama, cuma dipotong. Dibatasi **4 potong**: di lebar 48px
+  potongan kelima tinggal 1px dan jadi bubur; jumlah persisnya tetap ada di
+  atribut `title` dan di modal. Konsekuensi yang diterima: hari dengan
+  banyak kegiatan tapi sedikit orang (3 kegiatan, 3 orang → 11px dibagi 3)
+  potongannya kecil sekali.
 - **Jalur batang transparan**, cuma digariskan tipis dan diredupkan. Versi
   pertama jalurnya putih pekat, jadi 24 hari kosong dalam sebulan malah lebih
   menarik mata daripada hari yang berisi.

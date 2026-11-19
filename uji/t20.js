@@ -19,7 +19,7 @@ global.localStorage={getItem:()=>null,setItem(){},removeItem(){}};
 global.sessionStorage={getItem:()=>null,setItem(){},removeItem(){}};
 global.navigator={}; global.window={matchMedia:()=>({matches:false})};
 src=src.replace(/\(function\(\)\{\n  try\{[\s\S]*$/,'');
-src+="\nmodule.exports={petaTanggal,kalBar,kalGeserBulan,kalBulanAwal,kalDaftar,"
+src+="\nmodule.exports={petaTanggal,kalBar,kalSegmen,kalGeserBulan,kalBulanAwal,kalDaftar,"
  +"viewKalender,viewCatat,DB,setJenis:v=>{CATAT_JENIS=v},setLihat:v=>{LIHAT=v},"
  +"setBln:v=>{KAL_BLN=v},getBln:()=>KAL_BLN,setPin:p=>{PIN=p}};\n";
 fs.writeFileSync('m20_'+FILE,src);
@@ -94,6 +94,15 @@ cek('1 dari 13 dinaikkan ke lantai 14%', M.kalBar(1,13), 14);
 cek('1 dari 100 pun tetap kelihatan', M.kalBar(1,100), 14);
 cek('yang sudah di atas lantai tidak diutak-atik', M.kalBar(5,13), 38);
 
+console.log('--- kalSegmen: potongan = jumlah kegiatan ---');
+cek('tidak ada kegiatan -> tidak ada potongan', M.kalSegmen(0), 0);
+cek('1 kegiatan -> 1 potong', M.kalSegmen(1), 1);
+cek('3 kegiatan -> 3 potong', M.kalSegmen(3), 3);
+/* Dibatasi 4: di lebar 48px potongan kelima tinggal 1px dan jadi bubur.
+   Jumlah persisnya tetap ada di title dan di modal. */
+cek('4 kegiatan -> 4 potong', M.kalSegmen(4), 4);
+cek('9 kegiatan tetap dibatasi 4 potong', M.kalSegmen(9), 4);
+
 console.log('--- geser bulan ---');
 cek('Nov +1 -> Des', M.kalGeserBulan('2026-11',1), '2026-12');
 cek('Des +1 -> Jan tahun depan', M.kalGeserBulan('2026-12',1), '2027-01');
@@ -141,6 +150,34 @@ h=M.viewCatat();
 cek('1 Des 2026 hari Selasa -> 2 sel kosong di depan',
   (h.match(/class="kcell nihil"/g)||[]).length, 2);
 cek('31 sel buat Desember', (h.match(/data-aksi="kal-tgl"/g)||[]).length, 31);
+
+console.log('--- batang terpenggal di grid ---');
+M.setJenis(0); M.setLihat('kalender'); M.setBln('2026-11'); M.setPin('1234');
+DB.anggota=[{id:1,nama:'A',kategori:'tim',aktif:true,urutan:1},
+            {id:2,nama:'B',kategori:'tim',aktif:true,urutan:2},
+            {id:3,nama:'C',kategori:'tim',aktif:true,urutan:3},
+            {id:4,nama:'D',kategori:'tim',aktif:true,urutan:4}];
+DB.kegiatan=[K({id:60,tanggal:'2026-11-03'}),                       // 1 kegiatan
+             K({id:61,tanggal:'2026-11-05'}),K({id:62,tanggal:'2026-11-05'}),
+             K({id:63,tanggal:'2026-11-09'}),K({id:64,tanggal:'2026-11-09'}),
+             K({id:65,tanggal:'2026-11-09'}),K({id:66,tanggal:'2026-11-09'}),
+             K({id:67,tanggal:'2026-11-09'})];                      // 5 -> dibatasi 4
+DB.penugasan=DB.kegiatan.map(k=>({kegiatan_id:k.id,anggota_id:1}));
+h=M.viewCatat();
+function potong(tgl){
+  var re=new RegExp('data-v="'+tgl+'"[^>]*>.*?</button>');
+  var m=h.match(re); return m?(m[0].match(/<b><\/b>/g)||[]).length:-1;}
+cek('3 Nov: 1 kegiatan -> 1 potong', potong('2026-11-03'), 1);
+cek('5 Nov: 2 kegiatan -> 2 potong', potong('2026-11-05'), 2);
+cek('9 Nov: 5 kegiatan -> 4 potong (dibatasi)', potong('2026-11-09'), 4);
+cek('hari kosong: tidak ada batang sama sekali', potong('2026-11-04'), 0);
+/* Panjang total tetap ikut ORANG, bukan jumlah kegiatan: 5 Nov dan 9 Nov
+   sama-sama cuma 1 orang yang keluar, jadi panjangnya harus sama. */
+function lebar(tgl){
+  var m=h.match(new RegExp('data-v="'+tgl+'"[^>]*>.*?</button>'));
+  var w=m&&m[0].match(/width:(\d+)%/); return w?+w[1]:-1;}
+cek('panjang ikut orang, bukan jumlah kegiatan', lebar('2026-11-05'), lebar('2026-11-09'));
+cek('satu orang dari empat tetap kena lantai 14%', lebar('2026-11-03'), 25);
 
 console.log('--- mode daftar tidak ikut kebawa ---');
 M.setLihat('daftar');
